@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Dice Game</title>
+
+	<link rel="stylesheet" href="main.css">
+	<script src="dice-game.js"></script>
+</head>
+
+<body>
+
+	<div class="container">
+		<p> <span class="Player1">Bob</span>: Wins <span class="Points1">0</span> Total <span class="Total1">0</span> </p>
+		<p> <span class="Player2">Ron</span>: Wins <span class="Points2">0</span> Total <span class="Total2">0</span> </p>		
+	</div>
+
+	<div class="container">
+		<button type="button" class="butn"
+			onClick="editNames()">
+			Edit Names
+		</button>
+	</div>
+
+	<div class="dice">
+		<h1>Player 1's turn</h1>
+		<img class="img1" src="dice1.png">
+		<img class="img2" src="dice2.png">
+		<img class="img3" src="dice3.png">
+	</div>
+
+	<div class="container bottom">
+		<button type="button" class="butn"
+			onClick="rollTheDice()">
+			Roll the Dice
+		</button>
+	</div>
+
+	<div class="container bottom">
+		<button type="button" class="butn"
+			onClick="bankScore()">
+			Bank
+		</button>
+	</div>
+
+</body>
+	
+</html>
