@@ -2,13 +2,14 @@ var gameEndpoint = 'http://localhost:5000'; // example: 'http://mythi-publi-abcd
 //var diceAPI = "https://ghibliapi.herokuapp.com/people";    
 
 // Initialize game
+var NDICE = 3;
 var NPlayers = 2;
 var player = 1;
 // Note: Index 0 is not used and is a special case representing a tie
 var players = new Array(NPlayers+1);
 var wins = new Array(NPlayers+1);
-players[1] = "Bob";
-players[2] = "Ron";
+players[1] = "Player 1";
+players[2] = "Player 2";
 
 // Used only for the client javascript solution
 wins[1] = 0;
@@ -45,10 +46,10 @@ function updateTurnView(player) {
 }
  
 // Update the HTML DOM for dice
-function updateDiceView(which_player,die1,die2,die3,total) {
-    document.querySelector(".img1").setAttribute("src","dice" + die1 + ".png");
-    document.querySelector(".img2").setAttribute("src","dice" + die2 + ".png");
-    document.querySelector(".img3").setAttribute("src","dice" + die3 + ".png");
+function updateDiceView(which_player,die,total) {
+    document.querySelector(".img1").setAttribute("src","dice" + die[0] + ".png");
+    document.querySelector(".img2").setAttribute("src","dice" + die[1] + ".png");
+    document.querySelector(".img3").setAttribute("src","dice" + die[2] + ".png");
 
     if (which_player == 1) {
         document.querySelector("span.Total1").innerHTML 	= total;
@@ -57,11 +58,41 @@ function updateDiceView(which_player,die1,die2,die3,total) {
     }
 }
 
+// Update all of the check boxes after every turn based on what the server sent back
+function updateCheckboxes(keep) {
+    console.log("updateCheckboxes keep is", keep);
+
+    document.getElementById('check1').checked = keep[0];
+    document.getElementById('check2').checked = keep[1];
+    document.getElementById('check3').checked = keep[2];
+
+    var new_keep = getCheckboxValues();
+    console.log("new_keep is", new_keep);
+}
+
+// Get which dice the Player has selected to keep
+function getCheckboxValues() {
+    var keep = new Array(NDICE);
+    keep[0] = document.getElementById('check1').checked;
+    keep[1] = document.getElementById('check2').checked;
+    keep[2] = document.getElementById('check3').checked;
+
+    return keep;
+}
+
 // Function to parse json returned after a player completes their turn and update the HTML
 function updateTurn(turn) {
     var b = turn.body;
     player = b.player; // Global variable
     console.log('Turn complete.  New Player number is ', player);
+
+    var keep = new Array(NDICE);
+    keep[0] = b.keep1;
+    keep[1] = b.keep2;
+    keep[2] = b.keep3;
+    console.log('Dice kept are ', keep);
+
+    updateCheckboxes(keep);
     
     // Check to see if all players have completed their turn
     if ('winner' in b) {
@@ -90,19 +121,27 @@ function updateTurn(turn) {
 function updateRoll(dice) {
     var b = dice.body;
     player = b.player; // Global variable
-    var die1 = b.die1;
-    var die2 = b.die2;
-    var die3 = b.die3;
-    var total = b.total;
-
     console.log('Player',player);
-    console.log('Die1',die1);
-    console.log('Die2',die2);
-    console.log('Die3',die3);
+
+    var die = new Array(NDICE);
+    die[0] = b.die1;
+    die[1] = b.die2;
+    die[2] = b.die3;
+
+    console.log('Die are ',die);
+   
+    var keep = new Array(NDICE);
+    keep[0] = b.keep1;
+    keep[1] = b.keep2;
+    keep[2] = b.keep3;
+    console.log('Dice kept are ', keep);
+
+    var total = b.total;
     console.log('Total',total);
 
-    updateDiceView(player,die1,die2,die3,total);
-    updateTurnView(player)
+    updateDiceView(player,die,total);
+    updateCheckboxes(keep);
+    updateTurnView(player);
 }
 
 // Call the Server to roll the dice
@@ -110,28 +149,30 @@ function rollTheDice() {
     var baseAPI = gameEndpoint + "/roll_dice";
 
     // Get which dice the customer wants to keep
-    var keep1, keep2, keep3;
-    keep1 = 0;
-    keep2 = 0;
-    keep3 = 0;
-
+    var keep = getCheckboxValues();
+    console.log('Keep values are ', keep);
+   
     var diceAPI;
     var requestOptions = {};
     setTimeout(function () {
 
         if (false) {
             // For HTTP GET, Append the parameters to the URL
-            diceAPI = baseAPI + "?keep1=" + keep1 + "&keep2=" + keep2 + "&keep3=" + keep3;
+            diceAPI = baseAPI + "?keep1=" + keep[0] + "&keep2=" + keep[1] + "&keep3=" + keep[2];
             console.log('GET URL is ',diceAPI);
+            // Pass as Array of Booleans
+            //diceAPI = baseAPI + "?keep=" + keep;
+            //console.log('GET URL is ',diceAPI);
          } else {
             // For HTTP POST, Put params in body
             diceAPI = baseAPI;    
-            var raw = {'keep1': keep1, 'keep2': keep2, 'keep3': keep3}
+            var raw = {'keep1': keep[0], 'keep2': keep[1], 'keep3': keep[2]}
+            var raw_array = {'keep': keep}
             requestOptions = {
                 method: 'POST',
                 mode: 'cors',
                 headers: { 'Content-Type' : 'application/json'},
-                body: JSON.stringify(raw)
+                body: JSON.stringify(raw_array)
             };
             console.log('POST options are',requestOptions);
         }
