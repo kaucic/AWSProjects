@@ -34,7 +34,7 @@ def init():
     wins = [0 for x in range(NPlayers+1)]
     total = [0 for x in range(NPlayers+1)]
 
-    initResponse = {'body' : {'player' : player, 'wins1' : wins[1] , 'wins2' : wins[2] } }
+    initResponse = {'body' : {'player' : player, 'wins' : wins}}
 
     return jsonify(initResponse)
 
@@ -63,16 +63,15 @@ def roll_dice():
             else:
                 keep[i] = False
         logging.info(f"Dice to keep: keep1={keep[0]} keep2={keep[1]} keep3={keep[2]}")
+
     elif request.method == 'POST':
         logging.info(f"roll_dice POST called")
         data = request.get_json()
         logging.info(f"roll_dice POST received json {data}")
 
-        #keep[0] = data['keep1']
-        #keep[1] = data['keep2']
-        #keep[2] = data['keep3']
         keep = data['keep']
         logging.info(f"keep is {keep}")
+    
     else:
         logging.info(f"ERROR in roll_dice, unhandled {request.method} called")
 
@@ -90,8 +89,7 @@ def roll_dice():
         total[player] += die[i]
     logging.info(f"player = {player} total = {total[player]}")
 
-    body = { 'player' : player, 'die1' : die[0], 'die2' : die[1], 'die3' : die[2],
-        'keep1' : keep[0], 'keep2' : keep[1], 'keep3' : keep[2],  'total' : total[player] }
+    body = { 'player' : player, 'die' : die, 'keep' : keep, 'total' : total[player] }
 
     statusCode = 200
     #diceResponse = {**status, **body}
@@ -110,12 +108,14 @@ def bank_score():
         # Example ?player=2
         which_player = request.args.get('player')
         logging.info(f"Player number {which_player} has ended their turn.  Global Player number is {player}")
+    
     elif request.method == 'POST':
         logging.info(f"bank_score POST called")
         data = request.get_json()
-        logging.info(f"bank_score received json {data}")
+        logging.info(f"bank_score POST received json {data}")
         which_player = data['player']
         logging.info(f"Player number {which_player} has ended their turn.  Global Player number is {player}")
+    
     else:
         logging.info(f"ERROR in bank_score, unhandled {request.method} request")
     
@@ -126,7 +126,7 @@ def bank_score():
     keep = [False for x in range(NDICE)]
     
     # Return which dice the Player has kept
-    body = {'keep1' : keep[0], 'keep2' : keep[1], 'keep3' : keep[2]}
+    body = {'keep' : keep}
 
     # If all players have finished their turns then determine who won
     if player > NPlayers:
@@ -138,13 +138,11 @@ def bank_score():
             wins[2] += 1
         else: # Set winning player to 0 for a tie
             winner = 0
-        logging.info(f"winner is {winner} total1 = {total[1]} total2 = {total[2]}")
+        logging.info(f"winner is {winner} total is {total}")
    
         body['winner'] = winner
-        body['total1'] = total[1]
-        body['total2'] = total[2]
-        body['wins1']  = wins[1]
-        body['wins2']  = wins[2]
+        body['total'] = total
+        body['wins']  = wins
         
         # Reset back to Player1s turn
         player = 1
