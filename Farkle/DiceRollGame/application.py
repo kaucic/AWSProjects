@@ -14,9 +14,9 @@ NPlayers = 2
 # Note: Index 0 is not used, so Player 1 is index 1
 player = 1
 keep = [False for x in range(NDICE)]
-keptDie = [0 for x in range(NDICE)]
+keptDie = [x+1 for x in range(NDICE)]
 wins = [0 for x in range(NPlayers+1)]
-total = [0 for x in range(NPlayers+1)]
+totals = [0 for x in range(NPlayers+1)]
 
 @application.route("/")
 def health_check():
@@ -25,14 +25,14 @@ def health_check():
 
 @application.route('/init')
 def init():
-    logging.info(f"init called")
+    logging.info(f"init GET called")
 
-    global NDICE, NPlayers, player, keep, keptDie, wins, total
+    global NDICE, NPlayers, player, keep, keptDie, wins, totals
     player = 1
     keep = [False for x in range(NDICE)]
-    keptDie = [0 for x in range(3)]
+    keptDie = [x+1 for x in range(3)]
     wins = [0 for x in range(NPlayers+1)]
-    total = [0 for x in range(NPlayers+1)]
+    totals = [0 for x in range(NPlayers+1)]
 
     initResponse = {'body' : {'player' : player, 'wins' : wins}}
 
@@ -42,7 +42,7 @@ def init():
 #def roll_dice(keep1,keep2,keep3):
 @application.route('/roll_dice', methods=['GET', 'POST'])
 def roll_dice():
-    global NDICE, NPlayers, player, keep, keptDie, total
+    global NDICE, NPlayers, player, keep, keptDie, totals
     
     # For GET invocations
     if request.method == 'GET':
@@ -75,7 +75,7 @@ def roll_dice():
     else:
         logging.info(f"ERROR in roll_dice, unhandled {request.method} called")
 
-    total[player] = 0
+    totals[player] = 0
     # Determine which dice to roll
     die = [10 for x in range(NDICE)]
     for i in range(NDICE):
@@ -86,10 +86,10 @@ def roll_dice():
             die[i] = random.randint(1,6)
             keptDie[i] = die[i]
             logging.info(f"rolling die {i} value is {die[i]}")
-        total[player] += die[i]
-    logging.info(f"player = {player} total = {total[player]}")
+        totals[player] += die[i]
+    logging.info(f"player = {player} total = {totals[player]}")
 
-    body = { 'player' : player, 'die' : die, 'keep' : keep, 'total' : total[player] }
+    body = { 'player' : player, 'die' : die, 'keep' : keep, 'total' : totals[player] }
 
     statusCode = 200
     #diceResponse = {**status, **body}
@@ -99,7 +99,7 @@ def roll_dice():
 
 @application.route('/bank_score', methods=['GET', 'POST'])
 def bank_score():
-    global NDICE, NPlayers, player, wins, total, keep
+    global NDICE, NPlayers, player, wins, totals, keep
 
     # For GET invocations
     if request.method == 'GET':
@@ -130,18 +130,18 @@ def bank_score():
 
     # If all players have finished their turns then determine who won
     if player > NPlayers:
-        if total[1] > total[2]:
+        if totals[1] > totals[2]:
             winner = 1
             wins[1] += 1
-        elif total[2] > total[1]:
+        elif totals[2] > totals[1]:
             winner = 2
             wins[2] += 1
         else: # Set winning player to 0 for a tie
             winner = 0
-        logging.info(f"winner is {winner} total is {total}")
+        logging.info(f"winner is {winner} totals is {totals}")
    
         body['winner'] = winner
-        body['total'] = total
+        body['totals'] = totals
         body['wins']  = wins
         
         # Reset back to Player1s turn
@@ -153,6 +153,19 @@ def bank_score():
     bankResponse = {'body' : body, 'statusCode': statusCode}
     
     return jsonify(bankResponse)
+
+@application.route('/get_game_state', methods=['GET'])
+def get_game_state():
+    logging.info(f"get_game_state GET called")
+
+    global NDICE, NPlayers, player, wins, totals, keep, keptDie
+    
+    body = { 'player' : player, 'wins' : wins, 'totals' : totals, 'die' : keptDie, 'keep' : keep }
+    
+    statusCode = 200
+    gameStateResponse = {'body' : body, 'statusCode': statusCode}
+    
+    return jsonify(gameStateResponse)
 
 if __name__ == "__main__":
     # Flask defaults to localhost:5000

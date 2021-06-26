@@ -10,12 +10,6 @@ var players = new Array(NPlayers+1);
 players[1] = "Player 1";
 players[2] = "Player 2";
 
-// Used only for the client javascript solution
-var wins = new Array(NPlayers+1);
-wins[0] = -1;
-wins[1] = 0;
-wins[2] = 0;
-
 // Function to change the player name
 function editNames() {
     players[1] = prompt("Change Player1 name");
@@ -25,8 +19,8 @@ function editNames() {
     document.querySelector("p.Player2").innerHTML = players[2];
 }
 
-// Update the HTML DOM for winner
-function updateWinnerView(winner,wins) {
+// Update the HTML DOM to announce the winner
+function updateWinnerView(winner) {
     if (winner == 0) {
         document.querySelector("h1").innerHTML = "Draw!";
     }
@@ -36,10 +30,15 @@ function updateWinnerView(winner,wins) {
     else {
         document.querySelector("h1").innerHTML = (players[2] + " WINS!");    
     }
+}
 
+// Update the HTML DOM wins and totals
+function updateWinsTotalsView(wins,totals) {
     document.querySelector("span.Points1").innerHTML 	= wins[1];
     document.querySelector("span.Points2").innerHTML 	= wins[2];
-}
+    document.querySelector("span.Total1").innerHTML 	= totals[1];
+    document.querySelector("span.Total2").innerHTML 	= totals[2];
+}    
 
 // Update the HTML DOM for players turn
 function updateTurnView(player) {
@@ -68,7 +67,7 @@ function updateCheckboxes(keep) {
 
 // Get which dice the Player has selected to keep
 function getCheckboxValues() {
-    var keep = new Array(NDICE);
+    let keep = new Array(NDICE);
     keep[0] = document.getElementById('check1').checked;
     keep[1] = document.getElementById('check2').checked;
     keep[2] = document.getElementById('check3').checked;
@@ -78,13 +77,13 @@ function getCheckboxValues() {
 
 // Function to parse dice json returned from server and update the HTML
 function updateRoll(dice) {
-    var b = dice.body;
+    let b = dice.body;
     player = b.player; // Global variable
     console.log('Returned Player is ',player);
 
-    var die = b.die;
-    var keep = b.keep;
-    var total = b.total;
+    let die = b.die;
+    let keep = b.keep;
+    let total = b.total;
     console.log('Returned die are ',die);
     console.log('Returned dice kept are ', keep);
     console.log('Returned total is ',total);
@@ -100,26 +99,50 @@ function updateTurn(turn) {
     player = b.player; // Global variable
     console.log('Turn complete.  Returned new Player number is ', player);
 
-    var keep = b.keep;
+    let keep = b.keep;
     console.log('Returned dice kept are ', keep);
     updateCheckboxes(keep);
     
     // Check to see if all players have completed their turn
     if ('winner' in b) {
         console.log('Everyone has completed their turn');
-        var winner = b.winner;
-        var wins = b.wins;
-        var total = b.total;
-
+     
+        let winner = b.winner;
+        let wins = b.wins;
+        let totals = b.totals;
         console.log('Winner',winner);
         console.log('Wins',wins)
-        console.log('Total',total)
-        updateWinnerView(winner,wins);
+        console.log('Totals',totals)
+     
+        updateWinnerView(winner);
+        updateWinsTotalsView(wins,totals);
 
-    // Otherwise inform next Player that it is their turn
     } else {
-        updateTurnView(player)
+        // Otherwise inform next Player that it is their turn
+        updateTurnView(player);
     }
+}
+
+// Function to parse json returned after a change in the game state and update the HTML
+function updateGameState(state) {
+    var b = state.body;
+    var which_player = b.player;
+    console.log('State Update returned Player number ', player);
+
+    let wins = b.wins;
+    let totals = b.totals;
+    console.log('State Update Wins',wins);
+    console.log('State Update Totals',totals);
+
+    let die = b.die;
+    let keep = b.keep;
+    console.log('Returned die are ',die);
+    console.log('Returned dice kept are ', keep);
+
+    updateTurnView(which_player);
+    updateDiceView(which_player,die,totals[which_player]);
+    updateWinsTotalsView(wins,totals);
+    //updateCheckboxes(keep);
 }
 
 // Call the Server to roll the dice
@@ -127,7 +150,7 @@ function rollTheDice() {
     var baseAPI = gameEndpoint + "/roll_dice";
 
     // Get which dice the customer wants to keep
-    var keep = getCheckboxValues();
+    let keep = getCheckboxValues();
     console.log('Checkbox values are ', keep);
    
     var diceAPI;
@@ -145,7 +168,7 @@ function rollTheDice() {
             // For HTTP POST, Put params in body
             diceAPI = baseAPI;    
             //var raw = {'keep1': keep[0], 'keep2': keep[1], 'keep3': keep[2]}
-            var raw = {'keep': keep}
+            let raw = {'keep': keep}
             requestOptions = {
                 method: 'POST',
                 mode: 'cors',
@@ -187,7 +210,7 @@ function bankScore() {
          } else {
             // For HTTP POST, Put params in body
             bankAPI = baseAPI;    
-            var raw = {'player': player}           
+            let raw = {'player': player}           
             requestOptions = {
                 method: 'POST',
                 mode: 'cors',
@@ -213,6 +236,46 @@ function bankScore() {
 
     }, 100 );
 }
+
+// Long Poll the server every one second to get the game state
+async function getGameState() {
+    var gameStateAPI = gameEndpoint + "/get_game_state";
+    var requestOptions = {};
+
+    setTimeout(function () {      
+        fetch(gameStateAPI,requestOptions)
+            .then(function (response) { 
+                console.log('gameStateAPI Return status ', response.status); // 200
+                console.log(response.statusText); // OK
+                return response.json(); // parses JSON response into native JavaScript objects
+            })
+            .then(function (json) {
+                console.log(json);
+                updateGameState(json);
+                getGameState();
+            })
+            .catch(function(error) {
+                // Status 502 is a connection timeout error, so trap it
+                // may happen when the connection was pending for too long and the remote server
+                // or a proxy closed it
+                if (response.status == 502) {
+                    console.log("ERROR 502 in gameStateAPI ", error);
+                    getGameState();
+                } else {
+                    console.log('ERROR in gemaeStateAPI fetch ', error);
+                }                                  
+            });
+    }, 5000);
+}
+
+// Long Poll the server to get the game state
+getGameState();
+
+// Used only for the client javascript solution
+var wins = new Array(NPlayers+1);
+wins[0] = -1;
+wins[1] = 0;
+wins[2] = 0;
 
 // Client side only solution that rolls the dice in javascript
 function js_rollTheDice() {
