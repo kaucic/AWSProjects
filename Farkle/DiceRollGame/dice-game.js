@@ -4,19 +4,19 @@ var gameEndpoint = 'http://localhost:5000'; // example: 'http://mythi-publi-abcd
 // Initialize game
 var NDICE = 3;
 var NPlayers = 2;
-var player = 1;
+var playerID = 1;
 // Note: Index 0 is not used and is a special case representing a tie
-var players = new Array(NPlayers+1);
-players[1] = "Player 1";
-players[2] = "Player 2";
+var playerNames = new Array(NPlayers+1);
+playerNames[1] = "Player 1";
+playerNames[2] = "Player 2";
 
 // Function to change the player name
 function editNames() {
-    players[1] = prompt("Change Player1 name");
-    players[2] = prompt("Change player2 name");
+    playerNames[1] = prompt("Change Player1 name");
+    playerNames[2] = prompt("Change player2 name");
 
-    document.querySelector("p.Player1").innerHTML = players[1];
-    document.querySelector("p.Player2").innerHTML = players[2];
+    document.querySelector("p.Player1").innerHTML = playerNames[1];
+    document.querySelector("p.Player2").innerHTML = playerNames[2];
 }
 
 // Update the HTML DOM to announce the winner
@@ -25,10 +25,10 @@ function updateWinnerView(winner) {
         document.querySelector("h1").innerHTML = "Draw!";
     }
     else if (winner == 1) {
-        document.querySelector("h1").innerHTML 	= (players[1] + " WINS!");
+        document.querySelector("h1").innerHTML = (playerNames[1] + " WINS!");
     }
     else {
-        document.querySelector("h1").innerHTML = (players[2] + " WINS!");    
+        document.querySelector("h1").innerHTML = (playerNames[2] + " WINS!");    
     }
 }
 
@@ -42,16 +42,16 @@ function updateWinsTotalsView(wins,totals) {
 
 // Update the HTML DOM for players turn
 function updateTurnView(player) {
-    document.querySelector("h1").innerHTML = (players[player] + "\'s turn");
+    document.querySelector("h1").innerHTML = (playerNames[player] + "\'s turn");
 }
  
 // Update the HTML DOM for dice
-function updateDiceView(which_player,die,total) {
+function updateDiceView(player,die,total) {
     document.querySelector(".img1").setAttribute("src","dice" + die[0] + ".png");
     document.querySelector(".img2").setAttribute("src","dice" + die[1] + ".png");
     document.querySelector(".img3").setAttribute("src","dice" + die[2] + ".png");
 
-    if (which_player == 1) {
+    if (player == 1) {
         document.querySelector("span.Total1").innerHTML 	= total;
     } else {
         document.querySelector("span.Total2").innerHTML 	= total;
@@ -78,71 +78,93 @@ function getCheckboxValues() {
 // Function to parse dice json returned from server and update the HTML
 function updateRoll(dice) {
     let b = dice.body;
-    player = b.player; // Global variable
-    console.log('Returned Player is ',player);
+    let valid = b.valid;
+    console.log('updateRoll validity is ', valid);
 
-    let die = b.die;
-    let keep = b.keep;
-    let total = b.total;
-    console.log('Returned die are ',die);
-    console.log('Returned dice kept are ', keep);
-    console.log('Returned total is ',total);
+    if (valid == true) {
+        playerID = b.player; // Global variable, will be removed when game logins work
+        let player = b.player;
+        console.log('Returned Player is ',player);
 
-    updateDiceView(player,die,total);
-    updateCheckboxes(keep);
-    updateTurnView(player);
+        let die = b.die;
+        let keep = b.keep;
+        let total = b.total;
+        console.log('Returned die are ',die);
+        console.log('Returned dice kept are ', keep);
+        console.log('Returned total is ',total);
+
+        updateDiceView(player,die,total);
+        updateCheckboxes(keep);
+        updateTurnView(player);
+    } else {
+        alert("It is not your turn to roll.");
+    }
 }
 
 // Function to parse json returned after a player completes their turn and update the HTML
 function updateTurn(turn) {
     var b = turn.body;
-    player = b.player; // Global variable
-    console.log('Turn complete.  Returned new Player number is ', player);
+    let valid = b.valid;
+    console.log('updateTurn validity is ', valid);
 
-    let keep = b.keep;
-    console.log('Returned dice kept are ', keep);
-    updateCheckboxes(keep);
-    
-    // Check to see if all players have completed their turn
-    if ('winner' in b) {
-        console.log('Everyone has completed their turn');
-     
-        let winner = b.winner;
-        let wins = b.wins;
-        let totals = b.totals;
-        console.log('Winner',winner);
-        console.log('Wins',wins)
-        console.log('Totals',totals)
-     
-        updateWinnerView(winner);
-        updateWinsTotalsView(wins,totals);
+    if (valid == true) {
+        playerID = b.player; // Global variable, will be removed when game logins work
+        let player = b.player;
+        console.log('Turn complete.  Returned new Player number is ', player);
 
+        let keep = b.keep;
+        console.log('Returned dice kept are ', keep);
+        updateCheckboxes(keep);
+        
+        // Check to see if all players have completed their turn
+        if ('winner' in b) {
+            console.log('Everyone has completed their turn');
+        
+            let winner = b.winner;
+            let wins = b.wins;
+            let totals = b.totals;
+            console.log('Winner',winner);
+            console.log('Wins',wins)
+            console.log('Totals',totals)
+        
+            updateWinnerView(winner);
+            updateWinsTotalsView(wins,totals);
+
+        } else {
+            // Otherwise inform next Player that it is their turn
+            updateTurnView(player);
+        }
     } else {
-        // Otherwise inform next Player that it is their turn
-        updateTurnView(player);
+        alert ('It is not your turn.  You are not allowed to bank your score');
     }
 }
 
 // Function to parse json returned after a change in the game state and update the HTML
 function updateGameState(state) {
     var b = state.body;
-    var which_player = b.player;
+    let player = b.player;
     console.log('State Update returned Player number ', player);
+
+    playerNames = b.playerNames;  // Global variable
+    //console.log('State Update playerNames ',playerNames);
 
     let wins = b.wins;
     let totals = b.totals;
-    console.log('State Update Wins',wins);
-    console.log('State Update Totals',totals);
+    //console.log('State Update Wins',wins);
+    //console.log('State Update Totals',totals);
 
     let die = b.die;
     let keep = b.keep;
-    console.log('Returned die are ',die);
-    console.log('Returned dice kept are ', keep);
+    //console.log('Returned die are ',die);
+    //console.log('Returned dice kept are ', keep);
 
-    updateTurnView(which_player);
-    updateDiceView(which_player,die,totals[which_player]);
+    updateTurnView(player);
+    updateDiceView(player,die,totals[player]);
     updateWinsTotalsView(wins,totals);
-    //updateCheckboxes(keep);
+    // Only update the check boxes when you are not the player to not interfere with selections being made
+    if (playerID != player) {
+        //updateCheckboxes(keep);
+    }
 }
 
 // Call the Server to roll the dice
@@ -159,23 +181,23 @@ function rollTheDice() {
 
         if (false) {
             // For HTTP GET, Append the parameters to the URL
-            diceAPI = baseAPI + "?keep1=" + keep[0] + "&keep2=" + keep[1] + "&keep3=" + keep[2];
+            diceAPI = baseAPI + "?playerID=" + playerID + "&keep1=" + keep[0] + "&keep2=" + keep[1] + "&keep3=" + keep[2];
             console.log('GET URL is ',diceAPI);
             // Pass as Array of Booleans
-            //diceAPI = baseAPI + "?keep=" + keep;
+            //diceAPI = baseAPI + "?playerID=" + playerID + "&keep=" + keep;
             //console.log('GET URL is ',diceAPI);
          } else {
             // For HTTP POST, Put params in body
             diceAPI = baseAPI;    
             //var raw = {'keep1': keep[0], 'keep2': keep[1], 'keep3': keep[2]}
-            let raw = {'keep': keep}
+            let raw = {'playerID': playerID, 'keep': keep}
             requestOptions = {
                 method: 'POST',
                 mode: 'cors',
                 headers: { 'Content-Type' : 'application/json'},
                 body: JSON.stringify(raw)
             };
-            console.log('POST options are',requestOptions);
+            //console.log('POST options are',requestOptions);
         }
 
         fetch(diceAPI,requestOptions)
@@ -184,9 +206,9 @@ function rollTheDice() {
                 //console.log(response.statusText); // OK
                 return response.json();  // parses JSON response into native JavaScript objects
             })
-            .then(function (json) {
-                console.log(json);
-                updateRoll(json);
+            .then(function (jsObject) {
+                //console.log(jsObject);
+                updateRoll(jsObject);
             })
             .catch(function(error) {
                 console.log('ERROR in diceAPI fetch ', error);
@@ -205,19 +227,19 @@ function bankScore() {
 
         if (false) {
             // For HTTP GET, Append the parameters to the URL
-            bankAPI = baseAPI + "?player=" + player;
+            bankAPI = baseAPI + "?playerID=" + playerID;
             console.log('GET URL is ',bankAPI);
          } else {
             // For HTTP POST, Put params in body
             bankAPI = baseAPI;    
-            let raw = {'player': player}           
+            let raw = {'playerID': playerID}           
             requestOptions = {
                 method: 'POST',
                 mode: 'cors',
                 headers: { 'Content-Type' : 'application/json'},
                 body: JSON.stringify(raw)
             };
-            console.log('POST options are',requestOptions);
+            //console.log('POST options are',requestOptions);
         }
            
         fetch(bankAPI,requestOptions)
@@ -226,9 +248,9 @@ function bankScore() {
                 //console.log(response.statusText); // OK
                 return response.json(); // parses JSON response into native JavaScript objects
             })
-            .then(function (json) {
-                console.log(json);
-                updateTurn(json);
+            .then(function (jsObject) {
+                //console.log(jsObject);
+                updateTurn(jsObject);
             })
             .catch(function(error) {
                 console.log('ERROR in bankAPI fetch ', error);
@@ -242,16 +264,16 @@ async function getGameState() {
     var gameStateAPI = gameEndpoint + "/get_game_state";
     var requestOptions = {};
 
-    setTimeout(function () {      
+    setTimeout(function () {
         fetch(gameStateAPI,requestOptions)
             .then(function (response) { 
-                console.log('gameStateAPI Return status ', response.status); // 200
-                console.log(response.statusText); // OK
+                //console.log('gameStateAPI Return status ', response.status); // 200
+                //console.log(response.statusText); // OK
                 return response.json(); // parses JSON response into native JavaScript objects
             })
-            .then(function (json) {
-                console.log(json);
-                updateGameState(json);
+            .then(function (jsObject) {
+                //console.log(jsObject);
+                updateGameState(jsObject);
                 getGameState();
             })
             .catch(function(error) {
@@ -262,10 +284,10 @@ async function getGameState() {
                     console.log("ERROR 502 in gameStateAPI ", error);
                     getGameState();
                 } else {
-                    console.log('ERROR in gemaeStateAPI fetch ', error);
+                    console.log('ERROR in gameStateAPI fetch ', error);
                 }                                  
             });
-    }, 5000);
+    }, 3000);
 }
 
 // Long Poll the server to get the game state
