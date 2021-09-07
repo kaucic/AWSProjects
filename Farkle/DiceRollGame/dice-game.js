@@ -1,14 +1,15 @@
-var gameEndpoint = 'http://localhost:5000'; // example: 'http://mythi-publi-abcd12345-01234567890123.elb.us-east-1.amazonaws.com'
-//var diceAPI = "https://ghibliapi.herokuapp.com/people";    
+var gameEndpoint = 'http://localhost:5000'; // example: 'http://mythi-publi-abcd12345-01234567890123.elb.us-east-1.amazonaws.com' 
 
 // Initialize game
-var NDICE = 3;
+var NDICE = 6;
 var NPlayers = 2;
+var gameID = 0;
 var playerID = 1;
 // Note: Index 0 is not used and is a special case representing a tie
-var playerNames = new Array(NPlayers+1);
+var playerNames = Array(NPlayers+1);
 playerNames[1] = "Player 1";
 playerNames[2] = "Player 2";
+previouslyKeptDice = Array(NDICE).fill(false);
 
 // Function to change the player name
 function editNames() {
@@ -19,23 +20,14 @@ function editNames() {
     document.querySelector("p.Player2").innerHTML = playerNames[2];
 }
 
-// Update the HTML DOM to announce the winner
-function updateWinnerView(winner) {
-    if (winner == 0) {
-        document.querySelector("h1").innerHTML = "Draw!";
-    }
-    else if (winner == 1) {
-        document.querySelector("h1").innerHTML = (playerNames[1] + " WINS!");
-    }
-    else {
-        document.querySelector("h1").innerHTML = (playerNames[2] + " WINS!");    
-    }
+// Update the HTML DOM to broadcast message
+function updateMessage(msg) {
+    document.querySelector("h1").innerHTML = msg;
 }
 
-// Update the HTML DOM wins and totals
-function updateWinsTotalsView(wins,totals) {
-    document.querySelector("span.Points1").innerHTML 	= wins[1];
-    document.querySelector("span.Points2").innerHTML 	= wins[2];
+// Update the HTML DOM totals
+function updateTurnScoreAndTotalsView(turnScore,totals) {
+    document.querySelector("span.TurnScore").innerHTML  = turnScore;   
     document.querySelector("span.Total1").innerHTML 	= totals[1];
     document.querySelector("span.Total2").innerHTML 	= totals[2];
 }    
@@ -46,16 +38,16 @@ function updateTurnView(player) {
 }
  
 // Update the HTML DOM for dice
-function updateDiceView(player,die,total) {
+function updateDiceView(player,die,turnScore) {
     document.querySelector(".img1").setAttribute("src","dice" + die[0] + ".png");
     document.querySelector(".img2").setAttribute("src","dice" + die[1] + ".png");
     document.querySelector(".img3").setAttribute("src","dice" + die[2] + ".png");
+    document.querySelector(".img4").setAttribute("src","dice" + die[3] + ".png");
+    document.querySelector(".img5").setAttribute("src","dice" + die[4] + ".png");
+    document.querySelector(".img6").setAttribute("src","dice" + die[5] + ".png");
 
-    if (player == 1) {
-        document.querySelector("span.Total1").innerHTML 	= total;
-    } else {
-        document.querySelector("span.Total2").innerHTML 	= total;
-    }
+ 
+    document.querySelector("span.TurnScore").innerHTML = turnScore;   
 }
 
 // Update all of the check boxes after every turn based on what the server sent back
@@ -63,6 +55,9 @@ function updateCheckboxes(keep) {
     document.getElementById('check1').checked = keep[0];
     document.getElementById('check2').checked = keep[1];
     document.getElementById('check3').checked = keep[2];
+    document.getElementById('check4').checked = keep[3];
+    document.getElementById('check5').checked = keep[4];
+    document.getElementById('check6').checked = keep[5];
 }
 
 // Get which dice the Player has selected to keep
@@ -71,6 +66,9 @@ function getCheckboxValues() {
     keep[0] = document.getElementById('check1').checked;
     keep[1] = document.getElementById('check2').checked;
     keep[2] = document.getElementById('check3').checked;
+    keep[3] = document.getElementById('check4').checked;
+    keep[4] = document.getElementById('check5').checked;
+    keep[5] = document.getElementById('check6').checked;
 
     return keep;
 }
@@ -86,15 +84,23 @@ function updateRoll(dice) {
         let player = b.player;
         console.log('Returned Player is ',player);
 
-        let die = b.die;
-        let keep = b.keep;
-        let total = b.total;
+        let Farkled = b.Farkled;
+        console.log('Farkled is ',Farkled);
+        let die = b.diceVals;
+        let keep = b.previouslyKeptDice;
+        previouslyKeptDice = keep;  // Update Global variable for dice that are set aside
+        let turnScore = b.turnScore;
         console.log('Returned die are ',die);
         console.log('Returned dice kept are ', keep);
-        console.log('Returned total is ',total);
+        console.log('Returned turnScore is ',turnScore);
 
-        updateDiceView(player,die,total);
+        updateDiceView(player,die,turnScore);
         updateCheckboxes(keep);
+        if (Farkled == true) {
+            setTimeout(function () {
+                updateMessage("Farkle!");
+            }, 500);
+        }
         updateTurnView(player);
     } else {
         alert("It is not your turn to roll.");
@@ -112,28 +118,17 @@ function updateTurn(turn) {
         let player = b.player;
         console.log('Turn complete.  Returned new Player number is ', player);
 
-        let keep = b.keep;
-        console.log('Returned dice kept are ', keep);
-        updateCheckboxes(keep);
-        
-        // Check to see if all players have completed their turn
-        if ('winner' in b) {
-            console.log('Everyone has completed their turn');
-        
-            let winner = b.winner;
-            let wins = b.wins;
-            let totals = b.totals;
-            console.log('Winner',winner);
-            console.log('Wins',wins)
-            console.log('Totals',totals)
-        
-            updateWinnerView(winner);
-            updateWinsTotalsView(wins,totals);
+        let turnScore = b.turnScore;
+        let totals = b.totals;
+        console.log('turnScore: ', turnScore, 'totals: ', totals);
+        updateTurnScoreAndTotalsView(turnScore,totals);
 
-        } else {
-            // Otherwise inform next Player that it is their turn
-            updateTurnView(player);
-        }
+        previouslyKeptDice = b.previouslyKeptDice; // update Global variable, which should be zeroed out
+        console.log('Returned dice kept are ', previouslyKeptDice);
+        updateCheckboxes(previouslyKeptDice);
+
+        // Inform next Player that it is their turn
+        updateTurnView(player);
     } else {
         alert ('It is not your turn.  You are not allowed to bank your score');
     }
@@ -148,19 +143,18 @@ function updateGameState(state) {
     playerNames = b.playerNames;  // Global variable
     //console.log('State Update playerNames ',playerNames);
 
-    let wins = b.wins;
     let totals = b.totals;
-    //console.log('State Update Wins',wins);
+    let turnScore = b.turnScore;
     //console.log('State Update Totals',totals);
 
-    let die = b.die;
-    let keep = b.keep;
+    let die = b.diceVals;
+    previouslyKeptDice = b.previouslyKeptDice; // Global variable
     //console.log('Returned die are ',die);
-    //console.log('Returned dice kept are ', keep);
+    //console.log('Returned dice kept are ', previouslyKeptDice);
 
     updateTurnView(player);
     updateDiceView(player,die,totals[player]);
-    updateWinsTotalsView(wins,totals);
+    updateTurnScoreAndTotalsView(turnScore,totals);
     // Only update the check boxes when you are not the player to not interfere with selections being made
     if (playerID != player) {
         //updateCheckboxes(keep);
@@ -174,6 +168,14 @@ function rollTheDice() {
     // Get which dice the customer wants to keep
     let keep = getCheckboxValues();
     console.log('Checkbox values are ', keep);
+    
+    // Split them into what was previously kept and what is kept this roll
+    let keptDice = keep;
+    for (i=0; i < NDICE; i++) {
+        if (previouslyKeptDice[i] == true) {
+            keptDice[i] = false;
+        }
+    }
    
     var diceAPI;
     var requestOptions = {};
@@ -189,8 +191,7 @@ function rollTheDice() {
          } else {
             // For HTTP POST, Put params in body
             diceAPI = baseAPI;    
-            //var raw = {'keep1': keep[0], 'keep2': keep[1], 'keep3': keep[2]}
-            let raw = {'playerID': playerID, 'keep': keep}
+            let raw = {'gameID' : gameID, 'playerID': playerID, 'keptDice': keptDice, 'previouslyKeptDice' : previouslyKeptDice}
             requestOptions = {
                 method: 'POST',
                 mode: 'cors',
@@ -232,7 +233,7 @@ function bankScore() {
          } else {
             // For HTTP POST, Put params in body
             bankAPI = baseAPI;    
-            let raw = {'playerID': playerID}           
+            let raw = {'gameID' : gameID, 'playerID': playerID}           
             requestOptions = {
                 method: 'POST',
                 mode: 'cors',
@@ -261,9 +262,11 @@ function bankScore() {
 
 // Long Poll the server every one second to get the game state
 async function getGameState() {
-    var gameStateAPI = gameEndpoint + "/get_game_state";
+    // For HTTP GET, Append the parameters to the URL
+    var gameStateAPI = gameEndpoint + "/get_game_state" + "?gameID=" + gameID;
     var requestOptions = {};
-
+    console.log('GET URL is ',gameStateAPI);
+    
     setTimeout(function () {
         fetch(gameStateAPI,requestOptions)
             .then(function (response) { 
@@ -308,6 +311,9 @@ function js_rollTheDice() {
     die[0] = Math.floor(Math.random() * 6) + 1;
     die[1] = Math.floor(Math.random() * 6) + 1;
     die[2] = Math.floor(Math.random() * 6) + 1;
+    die[3] = Math.floor(Math.random() * 6) + 1;
+    die[4] = Math.floor(Math.random() * 6) + 1;
+    die[5] = Math.floor(Math.random() * 6) + 1;
 
     total[1] = 0;
     for (i=0; i < NDICE; i++) {
@@ -320,6 +326,9 @@ function js_rollTheDice() {
     die[0] = Math.floor(Math.random() * 6) + 1;
     die[1] = Math.floor(Math.random() * 6) + 1;
     die[2] = Math.floor(Math.random() * 6) + 1;
+    die[3] = Math.floor(Math.random() * 6) + 1;
+    die[4] = Math.floor(Math.random() * 6) + 1;
+    die[5] = Math.floor(Math.random() * 6) + 1;
 
     total[2] = 0;
     for (i=0; i < NDICE; i++) {
