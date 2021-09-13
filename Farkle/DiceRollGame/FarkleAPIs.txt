@@ -1,0 +1,23 @@
+Note: gameID and player are server global variables for the current game and current/active player
+gameID and playerID are client global variables
+
+rollDice/roll_dice
+
+In: gameID, playerID, keptDice
+Out: gameID, valid, player, Farkled, diceVals, previouslyKeptDice, turnScore
+
+State global variables: gameID, NPlayers, player, turnScore, diceVals, previouslyKeptDice
+
+2. bankScore/bank_score
+
+In: gameID, playerID
+Out: gameID, valid, player, turnScore, totals, previouslyKeptDice
+
+State global variables: gameID, NPlayers, player, turnScore, totals, previouslyKeptDice, diceVals
+
+3. getGameState/get_game_state
+
+In: gameID
+Out: State global variables
+
+State global variables: gameID, NPlayers, playerNames, player, turnScore, totals, previouslyKeptDice, diceVals

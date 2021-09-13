@@ -16,7 +16,6 @@ NDICE = 6
 NPlayers = 2
 # Note: Index 0 is not used, so Player 1 is index 1
 player = 1
-keptDice = [False for x in range(NDICE)]
 previouslyKeptDice = [False for x in range(NDICE)]
 diceVals = [1 for x in range(NDICE)]
 turnScore = 0
@@ -33,10 +32,9 @@ def health_check():
 def init():
     logging.info(f"init GET called")
 
-    global gameID, NDICE, NPlayers, playerNames, player, diceVals, keptDice, previouslyKeptDice, turnScore, totals
+    global gameID, NDICE, NPlayers, playerNames, player, diceVals, previouslyKeptDice, turnScore, totals
     gameID += 1
     player = 1
-    keptDice = [False for x in range(NDICE)]
     previouslyKeptDice = [False for x in range(NDICE)]
     diceVals = [1 for x in range(NDICE)]
     turnScore = 0
@@ -52,7 +50,7 @@ def init():
 #def roll_dice(keep1,keep2,keep3):
 @application.route('/roll_dice', methods=['GET', 'POST'])
 def roll_dice():
-    global game, NDICE, NPlayers, player, keptDice, previouslyKeptDice, diceVals, turnScore, totals
+    global game, NDICE, NPlayers, player, previouslyKeptDice, diceVals, turnScore, totals
     
     # GET code is obsolete and no longer works
     # For GET invocations
@@ -71,6 +69,7 @@ def roll_dice():
         logging.info(f"roll_dice GET received: keep1={keep_str[0]} keep2={keep_str[1]} keep3={keep_str[2]}")
 
         # Convert string values to Boolean
+        keptDice = [False for x in range(NDICE)]
         for i in range(NDICE):
             if keep_str[i] == 'true':
                 keptDice[i] = True
@@ -86,8 +85,7 @@ def roll_dice():
         gID = data['gameID']
         playerID = data['playerID']
         keptDice = data['keptDice']
-        previouslyKeptDice = data['previouslyKeptDice']
-        logging.info(f"[playerID is {playerID} keptDice is {keptDice} previouslyKeptDice is {previouslyKeptDice} ")
+        logging.info(f"[playerID is {playerID} keptDice is {keptDice}")
     
     else:
         logging.info(f"ERROR in roll_dice, unhandled {request.method} called")
@@ -98,7 +96,6 @@ def roll_dice():
         if any(keptDice):
             score, scoringDice = game.scoreDice(diceVals,keptDice)
             logging.info(f"Scoring the dice that were kept: score is {score} count is {scoringDice}")
-
             turnScore += score
         # if no dice were kept then it must be the first roll of the turn
         else:
@@ -154,7 +151,7 @@ def roll_dice():
 
 @application.route('/bank_score', methods=['GET', 'POST'])
 def bank_score():
-    global game, NDICE, NPlayers, player, keptDice, previouslyKeptDice, diceVals, turnScore, totals
+    global game, NDICE, NPlayers, player, previouslyKeptDice, diceVals, turnScore, totals
 
     # For GET invocations
     if request.method == 'GET':
@@ -195,7 +192,6 @@ def bank_score():
             player = 1
 
         # Clear all kept dice
-        keptDice = [False for x in range(NDICE)]
         previouslyKeptDice = [False for x in range(NDICE)]
         
         body['valid'] = True
@@ -223,7 +219,7 @@ def get_game_state():
     else:
         logging.info(f"ERROR in get_game_state, unhandled {request.method} request")
        
-    global NDICE, NPlayers, playerNames, player, keptDice, previouslyKeptDice, diceVals, turnScore, totals
+    global NDICE, NPlayers, playerNames, player, previouslyKeptDice, diceVals, turnScore, totals
     
     body = { 'gameID' : gID, 'playerNames' : playerNames, 'player' : player, 'totals' : totals, 'turnScore' : turnScore, 'diceVals' : diceVals, 'previouslyKeptDice' : previouslyKeptDice }
     

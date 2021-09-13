@@ -80,6 +80,20 @@ class TestFarkle(unittest.TestCase):
             print("Error Message {0}".format(err))
             sys.exit(1)
 
+    def test_two5s_two1s(self):
+        try:
+            inst = Farkle()
+            dice = [2, 1, 1, 5, 6, 5]
+            keptDice = [True, True, True, True, True, True]
+            score, scoringDice = inst.scoreDice(dice,keptDice)
+            logging.info(f"dice are {dice} keptDice are {keptDice} score is {score} num scoringDice is {scoringDice}")
+            if score != 300 or scoringDice != 4:
+                 self.fail(f"test_Farkle failed. score is {score} scoringDice is {scoringDice}")            
+        except Exception as err:
+            print("Error Message {0}".format(err))
+            sys.exit(1)
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     unittest.main()

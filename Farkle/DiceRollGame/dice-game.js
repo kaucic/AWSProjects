@@ -76,6 +76,7 @@ function getCheckboxValues() {
 // Function to parse dice json returned from server and update the HTML
 function updateRoll(dice) {
     let b = dice.body;
+    let gID = b.gameID;
     let valid = b.valid;
     console.log('updateRoll validity is ', valid);
 
@@ -87,15 +88,14 @@ function updateRoll(dice) {
         let Farkled = b.Farkled;
         console.log('Farkled is ',Farkled);
         let die = b.diceVals;
-        let keep = b.previouslyKeptDice;
-        previouslyKeptDice = keep;  // Update Global variable for dice that are set aside
+        previouslyKeptDice = b.previouslyKeptDice; // Update Global variable for dice that are set aside
         let turnScore = b.turnScore;
         console.log('Returned die are ',die);
-        console.log('Returned dice kept are ', keep);
+        console.log('Returned dice kept are ', previouslyKeptDice);
         console.log('Returned turnScore is ',turnScore);
 
         updateDiceView(player,die,turnScore);
-        updateCheckboxes(keep);
+        updateCheckboxes(previouslyKeptDice);
         if (Farkled == true) {
             setTimeout(function () {
                 updateMessage("Farkle!");
@@ -110,6 +110,7 @@ function updateRoll(dice) {
 // Function to parse json returned after a player completes their turn and update the HTML
 function updateTurn(turn) {
     var b = turn.body;
+    let gID = b.gameID;
     let valid = b.valid;
     console.log('updateTurn validity is ', valid);
 
@@ -162,7 +163,7 @@ function updateGameState(state) {
 }
 
 // Call the Server to roll the dice
-function rollTheDice() {
+function rollDice() {
     var baseAPI = gameEndpoint + "/roll_dice";
 
     // Get which dice the customer wants to keep
@@ -191,7 +192,7 @@ function rollTheDice() {
          } else {
             // For HTTP POST, Put params in body
             diceAPI = baseAPI;    
-            let raw = {'gameID' : gameID, 'playerID': playerID, 'keptDice': keptDice, 'previouslyKeptDice' : previouslyKeptDice}
+            let raw = {'gameID' : gameID, 'playerID': playerID, 'keptDice': keptDice}
             requestOptions = {
                 method: 'POST',
                 mode: 'cors',
@@ -303,7 +304,7 @@ wins[1] = 0;
 wins[2] = 0;
 
 // Client side only solution that rolls the dice in javascript
-function js_rollTheDice() {
+function js_rollDice() {
     var die = new Array(NDICE);
     var total = new Array(NPlayers+1);
 
