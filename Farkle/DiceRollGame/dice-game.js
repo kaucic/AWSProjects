@@ -4,25 +4,22 @@ var gameEndpoint = 'http://localhost:5000'; // example: 'http://mythi-publi-abcd
 var NDICE = 6;
 var NPlayers = 2;
 var gameID = 0;
+// Note: A PlayerID value of 0 is not used and is a special case representing a game that hasn't started or a tie
 var playerID = 1;
-// Note: Index 0 is not used and is a special case representing a tie
 var playerNames = Array(NPlayers+1);
-playerNames[1] = "Player 1";
-playerNames[2] = "Player 2";
+playerNames[1] = "Player1";
+playerNames[2] = "Player2";
 previouslyKeptDice = Array(NDICE).fill(false);
-
-// Function to change the player name
-function editNames() {
-    playerNames[1] = prompt("Change Player1 name");
-    playerNames[2] = prompt("Change player2 name");
-
-    document.querySelector("p.Player1").innerHTML = playerNames[1];
-    document.querySelector("p.Player2").innerHTML = playerNames[2];
-}
 
 // Update the HTML DOM to broadcast message
 function updateMessage(msg) {
     document.querySelector("h1").innerHTML = msg;
+}
+
+// Update the names of the players
+function updatePlayerNamesView(names) {
+    document.querySelector("span.Player1").innerHTML = playerNames[1];
+    document.querySelector("span.Player2").innerHTML = playerNames[2];
 }
 
 // Update the HTML DOM totals
@@ -96,13 +93,11 @@ function updateRoll(dice) {
         updateDiceView(player,die,turnScore);
         updateCheckboxes(previouslyKeptDice);
         if (Farkled == true) {
-            setTimeout(function () {
-                updateMessage("Farkle!");
-            }, 100);
+            updateMessage("Farkle!");
         }
         setTimeout(function () {
             updateTurnView(player);
-            }, 2900);
+            }, 2000);
 
     } else {
         alert("It is not your turn to roll.");
@@ -156,6 +151,7 @@ function updateGameState(state) {
     //console.log('Returned die are ',die);
     //console.log('Returned dice kept are ', previouslyKeptDice);
 
+    updatePlayerNamesView(playerNames);
     updateTurnView(player);
     updateDiceView(player,die,totals[player]);
     updateTurnScoreAndTotalsView(turnScore,totals);
@@ -211,11 +207,10 @@ function rollDice() {
         if (false) {
             // HTTP Get is obsolote and no longer works
             // For HTTP GET, Append the parameters to the URL
-            diceAPI = baseAPI + "?playerID=" + playerID + "&keep1=" + keep[0] + "&keep2=" + keep[1] + "&keep3=" + keep[2];
-            console.log('GET URL is ',diceAPI);
+            diceAPI = baseAPI + "?gameID=" + gameID + "&playerID=" + playerID + "&keep1=" + keptDice[0] + "&keep2=" + keptDice[1] + "&keep3=" + keptDice[2];
             // Pass as Array of Booleans
-            //diceAPI = baseAPI + "?playerID=" + playerID + "&keep=" + keep;
-            //console.log('GET URL is ',diceAPI);
+            //diceAPI = baseAPI + "?gameID=" + gameID + "&playerID=" + playerID + "&keep=" + keptDice;
+            console.log('GET URL is ',diceAPI);
          } else {
             // For HTTP POST, Put params in body
             diceAPI = baseAPI;    
@@ -319,6 +314,13 @@ async function getGameState() {
                 }                                  
             });
     }, 3000);
+}
+
+// Function to change the player name for this client and start the game
+function editName() {
+    yourName = prompt("Enter your name");
+    playerNames[playerID] = yourName;
+    updatePlayerNamesView(playerNames);
 }
 
 // Long Poll the server to get the game state
