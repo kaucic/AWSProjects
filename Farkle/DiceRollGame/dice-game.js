@@ -46,7 +46,6 @@ function updateDiceView(player,die,turnScore) {
     document.querySelector(".img5").setAttribute("src","dice" + die[4] + ".png");
     document.querySelector(".img6").setAttribute("src","dice" + die[5] + ".png");
 
- 
     document.querySelector("span.TurnScore").innerHTML = turnScore;   
 }
 
@@ -99,9 +98,12 @@ function updateRoll(dice) {
         if (Farkled == true) {
             setTimeout(function () {
                 updateMessage("Farkle!");
-            }, 500);
+            }, 100);
         }
-        updateTurnView(player);
+        setTimeout(function () {
+            updateTurnView(player);
+            }, 2900);
+
     } else {
         alert("It is not your turn to roll.");
     }
@@ -138,6 +140,7 @@ function updateTurn(turn) {
 // Function to parse json returned after a change in the game state and update the HTML
 function updateGameState(state) {
     var b = state.body;
+    let gID = b.gameID;
     let player = b.player;
     console.log('State Update returned Player number ', player);
 
@@ -158,8 +161,31 @@ function updateGameState(state) {
     updateTurnScoreAndTotalsView(turnScore,totals);
     // Only update the check boxes when you are not the player to not interfere with selections being made
     if (playerID != player) {
-        //updateCheckboxes(keep);
+        //updateCheckboxes(previouslyKeptDice);
     }
+}
+
+// Initialize the game for two people to play using one browswer
+function initGame() {
+    var initGameAPI = gameEndpoint + "/init";
+    var requestOptions = {};
+    console.log('GET URL is ',initGameAPI);
+    
+    setTimeout(function () {
+        fetch(initGameAPI,requestOptions)
+            .then(function (response) { 
+                //console.log('initGameAPI Return status ', response.status); // 200
+                //console.log(response.statusText); // OK
+                return response.json(); // parses JSON response into native JavaScript objects
+            })
+            .then(function (jsObject) {
+                //console.log(jsObject);
+                updateGameState(jsObject);
+            })
+            .catch(function(error) {
+                console.log('ERROR in initGameAPI fetch ', error);                                 
+            });
+    }, 100);
 }
 
 // Call the Server to roll the dice
@@ -183,6 +209,7 @@ function rollDice() {
     setTimeout(function () {
 
         if (false) {
+            // HTTP Get is obsolote and no longer works
             // For HTTP GET, Append the parameters to the URL
             diceAPI = baseAPI + "?playerID=" + playerID + "&keep1=" + keep[0] + "&keep2=" + keep[1] + "&keep3=" + keep[2];
             console.log('GET URL is ',diceAPI);
@@ -229,7 +256,7 @@ function bankScore() {
 
         if (false) {
             // For HTTP GET, Append the parameters to the URL
-            bankAPI = baseAPI + "?playerID=" + playerID;
+            bankAPI = baseAPI + "?gameID=" + gameID + "&playerID=" + playerID;
             console.log('GET URL is ',bankAPI);
          } else {
             // For HTTP POST, Put params in body
@@ -295,7 +322,7 @@ async function getGameState() {
 }
 
 // Long Poll the server to get the game state
-getGameState();
+//getGameState();
 
 // Used only for the client javascript solution
 var wins = new Array(NPlayers+1);
@@ -304,6 +331,7 @@ wins[1] = 0;
 wins[2] = 0;
 
 // Client side only solution that rolls the dice in javascript
+// Obsolete: was written for total score wins rules instead of Farkle rules
 function js_rollDice() {
     var die = new Array(NDICE);
     var total = new Array(NPlayers+1);

@@ -21,14 +21,13 @@ diceVals = [1 for x in range(NDICE)]
 turnScore = 0
 totals = [0 for x in range(NPlayers+1)]
 playerNames = ['nobody' for x in range(NPlayers+1)]
-game = Farkle()
 
 @application.route("/")
 def health_check():
     return jsonify({"message" : "Health check is good.  Try /roll_dice instead."})
-    #return "<h1>Health Check is good</h1>"
+    #return "<h1>Health Check is good.  Try /roll_dice instead.</h1>"
 
-@application.route('/init')
+@application.route('/init', methods=['GET'])
 def init():
     logging.info(f"init GET called")
 
@@ -42,15 +41,18 @@ def init():
     playerNames[1] = 'Bob'
     playerNames[2] = 'Ron'
 
-    initResponse = {'body' : {'gameID' : gameID, 'playerNames' : playerNames, 'player' : player, 'totals' : totals}}
-
+    body = {'gameID' : gameID, 'playerNames' : playerNames, 'player' : player, 'totals' : totals, 'turnScore' : turnScore, 'diceVals' : diceVals, 'previouslyKeptDice' : previouslyKeptDice}
+ 
+    statusCode = 200
+    initResponse = {'body' : body, 'statusCode': statusCode}
+    
     return jsonify(initResponse)
 
 #@application.route('/roll_dice/<keep1>/<keep2>/<keep3>', methods=['GET', 'POST'])
 #def roll_dice(keep1,keep2,keep3):
 @application.route('/roll_dice', methods=['GET', 'POST'])
 def roll_dice():
-    global game, NDICE, NPlayers, player, previouslyKeptDice, diceVals, turnScore, totals
+    global NDICE, NPlayers, player, previouslyKeptDice, diceVals, turnScore, totals
     
     # GET code is obsolete and no longer works
     # For GET invocations
@@ -90,11 +92,12 @@ def roll_dice():
     else:
         logging.info(f"ERROR in roll_dice, unhandled {request.method} called")
 
+    game = Farkle()
     # Check to see if it is the calling clients turn
     if playerID == player:
         # Score the dice that were kept
         if any(keptDice):
-            score, scoringDice = game.scoreDice(diceVals,keptDice)
+            score, scoringDice = game.score_dice(diceVals,keptDice)
             logging.info(f"Scoring the dice that were kept: score is {score} count is {scoringDice}")
             turnScore += score
         # if no dice were kept then it must be the first roll of the turn
@@ -119,7 +122,7 @@ def roll_dice():
         body = { 'gameID' : gID, 'valid' : True, 'diceVals' : diceVals}
             
         # Check for Farkle
-        score, scoringDice = game.scoreDice(diceVals, diceToRoll)
+        score, scoringDice = game.score_dice(diceVals, diceToRoll)
         logging.info(f"Checking for Farkle: score is {score} count is {scoringDice}")
         if score > 0:
             body['Farkled'] = False;
@@ -151,7 +154,7 @@ def roll_dice():
 
 @application.route('/bank_score', methods=['GET', 'POST'])
 def bank_score():
-    global game, NDICE, NPlayers, player, previouslyKeptDice, diceVals, turnScore, totals
+    global NDICE, NPlayers, player, previouslyKeptDice, diceVals, turnScore, totals
 
     # For GET invocations
     if request.method == 'GET':
@@ -160,6 +163,7 @@ def bank_score():
         # Example ?gameID=1&playerID=2
         gID = request.args.get('gameID')
         playerID = request.args.get('playerID')
+        logging.info(f"bank_score GET gameID is {gID} playerID is {playerID}")
         
     elif request.method == 'POST':
         logging.info(f"bank_score POST called")
@@ -173,6 +177,7 @@ def bank_score():
     
     logging.info(f"Player number {playerID} has ended their turn.  Current Player number is {player}")
     
+    game = Farkle()
     body = {'gameID' : gID}
     # Check to see if it is the calling clients turn
     if playerID == player:
@@ -180,7 +185,7 @@ def bank_score():
         diceToScore = [True for x in range(NDICE)]
         for i in range(NDICE):
             diceToScore[i] = not previouslyKeptDice[i]
-        score, scoringDice = game.scoreDice(diceVals,diceToScore)
+        score, scoringDice = game.score_dice(diceVals,diceToScore)
         logging.info(f"Determining points that were banked: score is {score} count is {scoringDice}")
 
         turnScore += score

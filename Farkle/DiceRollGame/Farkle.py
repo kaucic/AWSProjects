@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mpn Sep 06 13:50:26 2021
+Created on Mon Sep 06 13:50:26 2021
 
 @author: home
 """
@@ -16,7 +16,7 @@ class Farkle:
     # Method to compute the Farkle score pertaining to the binary vector diceToScore with spots in diceVals
     # Return the score and the dice that scored
     # TODO: complete and fix the scoring and return the dice that scored instead of the number of dice used     
-    def scoreDice(self, diceVals, diceToScore)  -> Tuple[int,list]:
+    def score_dice(self, diceVals, diceToScore)  -> Tuple[int,list]:
         count = 0
         dice_that_scored = 0
         vals = {}
@@ -77,6 +77,33 @@ class Farkle:
         
         return score, dice_that_scored
 
+    def roll_dice(self,keptDice):
+        return
+
+    def bank_score(self):
+        return
+
+    def bot1_policy(self,diceVals,previouslyKeptDice,turnScore):
+        return True
+
+    def bot1_do_turn(self):
+        # do roll_dice until Farkle or bank_score
+        #   if not Farkle
+        #       bank_score or choose dice to roll
+
+        turnScore = 0
+        banked = False
+        keptDice = [False for x in range(NDICE)]
+        
+        farkled,diceVals,previouslyKeptDice = self.roll_dice(keptDice)
+        while farkled == False and banked == False:
+            banked,keptDice = self.bot1_policy(diceVals,previouslyKeptDice,turnScore)
+            if banked == False:
+                farkled,diceVals,previouslyKeptDice = self.roll_dice(keptDice)
+            else:
+                turnScore,totals = self.bank_score()
+
+        return turnScore,totals
 
 # Start main program
 if __name__ == "__main__":
