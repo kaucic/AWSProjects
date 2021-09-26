@@ -8,6 +8,7 @@ Created on Mon Sep 06 13:50:26 2021
 from typing import Tuple
 
 import random
+from time import sleep
 
 import logging
 import doFlaskLogging
@@ -201,6 +202,8 @@ class Farkle:
         farkled = score == 0
         if farkled == True:
             logging.info(f"You Farkled on your first roll!!")
+            # Sleep for 3 seconds to give time for browswer get_game_state to update
+            sleep(3.0)
         
         while farkled == False and banked == False:
             banked,keptDice = self.bot_policy(whichPolicy,diceVals,rolledDice,previouslyKeptDice,turnScore)
@@ -226,11 +229,14 @@ class Farkle:
                 score = self.bank_score()
                 turnScore += score
 
+            # Sleep for 3 seconds to give time for browswer get_game_state to update
+            sleep(1./1000)
+
         if farkled == True:
             turnScore = 0
             logging.info(f"You Farkled!!")
             
-        logging.info(f"bot_turn turnScore {turnScore}")
+        logging.info(f"bot_turn returning turnScore {turnScore}")
         return turnScore
 
 # Start main program
