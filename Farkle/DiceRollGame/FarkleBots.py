@@ -21,6 +21,13 @@ class FarkleBots:
         self.clear_previouslyKeptDice()       
         return
 
+    def set_keptDiceVals(self,diceVals):
+        self._keptDiceVals = diceVals
+        return
+
+    def get_keptDiceVals(self):
+        return self._keptDiceVals
+        
     def get_previouslyKeptDice(self):
         return self._previouslyKeptDice
 
@@ -98,10 +105,11 @@ class FarkleBots:
         logging.info(f"score_dice score {score} for diceToScore {diceToScore} diceThatScored {diceThatScored}")
         return score, diceThatScored
 
-    # Roll the dice that aren't previouslyKeptDice
-    # As a side effect update the class variable _keptDiceVals
+    # Roll the dice that aren't _previouslyKeptDice
+    # Get the dice values from the dice that weren't rolled from the class variable _keptDiceVals
     # Return the a list of values of the dice rolled, list of the previously kept dice, and list of rolled dice
     def roll_dice(self) -> Tuple[list,list]:
+        diceVals = self._keptDiceVals
         # Determine which dice to roll
         diceToRoll = [True for x in range(NDICE)]
         for i in range(NDICE):
@@ -109,11 +117,11 @@ class FarkleBots:
         
         for i in range(NDICE):
             if diceToRoll[i] == True:
-                self._keptDiceVals[i] = random.randint(1,6)
-                logging.info(f"rolling die {i} value is {self._keptDiceVals[i]}")
+                diceVals[i] = random.randint(1,6)
+                logging.info(f"rolling die {i} value is {diceVals[i]}")
  
-        logging.info(f"roll_dice dice vals {self._keptDiceVals} previouslyKeptDice {self._previouslyKeptDice}")
-        return self._keptDiceVals, self._previouslyKeptDice, diceToRoll
+        logging.info(f"roll_dice dice vals {diceVals} previouslyKeptDice {self._previouslyKeptDice}")
+        return diceVals, self._previouslyKeptDice, diceToRoll
 
     # Compute the score for all the of dice that weren't previously scored
     # _previouslyKeptDice have already been scored, so score the rest of the dice
@@ -197,6 +205,7 @@ class FarkleBots:
         banked = False
 
         diceVals,previouslyKeptDice,rolledDice = self.roll_dice()
+        self.set_keptDiceVals(diceVals)  # update class variable
         score,diceThatScored = self.score_dice(diceVals,rolledDice)
         farkled = score == 0
         if farkled == True:
@@ -218,23 +227,24 @@ class FarkleBots:
                 
                 # If all dice have scored, clear previouslyKeptDice and roll all dice
                 if all(previouslyKeptDice):
-                    self.clear_previouslyKeptDice()
+                    self.clear_previouslyKeptDice()  # clear class variable
                     
                 diceVals,previouslyKeptDice,rolledDice = self.roll_dice()
+                self.set_keptDiceVals(diceVals)  # update class variable
                 # check for Farkle for the dice that were rolled
                 score,diceThatScored = self.score_dice(diceVals,rolledDice)
                 farkled = score == 0
             else:
                 score = self.bank_score()
                 turnScore += score
-                self.clear_previouslyKeptDice()
+                self.clear_previouslyKeptDice()  # clear class variable
 
             # Sleep for 3 seconds to give time for browswer get_game_state to update
             sleep(1./1000)
 
         if farkled == True:
             turnScore = 0
-            self.clear_previouslyKeptDice()
+            self.clear_previouslyKeptDice()  # clear class variable
             logging.info(f"You Farkled!!")
             
         logging.info(f"bot_turn returning turnScore {turnScore}")
