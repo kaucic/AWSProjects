@@ -26,7 +26,7 @@ class Farkle:
 
     def clear_previouslyKeptDice(self):
         self._previouslyKeptDice = [False for x in range(NDICE)]
-        return self._previouslyKeptDice
+        return
 
     def update_previouslyKeptDice(self,keptDice):
         # Update previouslyKeptDice
@@ -117,14 +117,12 @@ class Farkle:
 
     # Compute the score for all the of dice that weren't previously scored
     # _previouslyKeptDice have already been scored, so score the rest of the dice
-    # As a side effect, reset the class variable _previouslyKeptDice
     # Return the score
     def bank_score(self) -> int:
         diceToScore = [True for x in range(NDICE)]
         for i in range(NDICE):
             diceToScore[i] = not self._previouslyKeptDice[i]
         score, scoringDice = self.score_dice(self._keptDiceVals,diceToScore)
-        self.clear_previouslyKeptDice()
 
         logging.info(f"bank_score extra points that were banked {score} count is {scoringDice}")
         return score
@@ -188,6 +186,7 @@ class Farkle:
             logging.error(f"ERROR in bot_policy, whichPolicy is {whichPolicy}")
     
     # Do a complete turn using policy specified by whichPolicy
+    # Class variables _keptDiceVals and _previouslyKeptDice are modified during the turn
     # Return the score for the turn
     def bot_do_turn(self,whichPolicy) -> int:
         # do roll_dice until Farkle or bank_score
@@ -228,12 +227,14 @@ class Farkle:
             else:
                 score = self.bank_score()
                 turnScore += score
+                self.clear_previouslyKeptDice()
 
             # Sleep for 3 seconds to give time for browswer get_game_state to update
             sleep(1./1000)
 
         if farkled == True:
             turnScore = 0
+            self.clear_previouslyKeptDice()
             logging.info(f"You Farkled!!")
             
         logging.info(f"bot_turn returning turnScore {turnScore}")
