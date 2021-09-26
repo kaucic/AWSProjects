@@ -6,7 +6,7 @@ import random
 import logging
 import doFlaskLogging
 
-from Farkle import Farkle
+from FarkleBots import FarkleBots
 
 application = Flask(__name__)
 CORS(application)
@@ -92,7 +92,7 @@ def roll_dice():
     else:
         logging.info(f"ERROR in roll_dice, unhandled {request.method} called")
 
-    game = Farkle()
+    game = FarkleBots()
     # Check to see if it is the calling clients turn
     if playerID == player:
         # Score the dice that were kept
@@ -177,7 +177,7 @@ def bank_score():
     
     logging.info(f"Player number {playerID} has ended their turn.  Current Player number is {player}")
     
-    game = Farkle()
+    game = FarkleBots()
     body = {'gameID' : gID}
     # Check to see if it is the calling clients turn
     if playerID == player:
