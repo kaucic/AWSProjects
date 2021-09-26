@@ -148,9 +148,9 @@ class Farkle:
                 logging.info(f"bot1_policy all dice scored, stopping, total score {turnScore + score} scoringDice {scoringDice}")
                 bank = True
                 diceToKeep = diceToPickFrom
-        # If not all dice have scored, stop if >= 500
-        elif turnScore + score >= 500:
-            logging.info(f"bot1_policy more than 500, stopping, total score {turnScore + score} scoringDice {scoringDice}")
+        # If not all dice have scored, stop if >= 400
+        elif turnScore + score >= 400:
+            logging.info(f"bot1_policy greater than or equal to 400, stopping, total score {turnScore + score} scoringDice {scoringDice}")
             bank = True
             diceToKeep = diceToPickFrom
         # Keep the first 1 or 5 and roll the rest of the dice
@@ -188,7 +188,7 @@ class Farkle:
     # Do a complete turn using policy specified by whichPolicy
     # Class variables _keptDiceVals and _previouslyKeptDice are modified during the turn
     # Return the score for the turn
-    def bot_do_turn(self,whichPolicy) -> int:
+    def bot_do_turn(self,whichPolicy=1) -> int:
         # do roll_dice until Farkle or bank_score
         #   if not Farkle
         #       bank_score or choose dice to roll
@@ -249,6 +249,6 @@ if __name__ == "__main__":
     score, scoringDice = inst.score_dice(dice,keptDice)
     logging.info(f"dice are {dice} keptDice are {keptDice} score is {score} count is {scoringDice}")
     
-    botScore = inst.bot_do_turn(1)
+    botScore = inst.bot_do_turn()
     logging.info(f"bot scored {botScore} points")
     doFlaskLogging.clean_up_logger()
