@@ -313,7 +313,7 @@ async function getGameState() {
                     console.log('ERROR in gameStateAPI fetch ', error);
                 }                                  
             });
-    }, 3000);
+    }, 1000);
 }
 
 // Function to change the player name for this client and start the game

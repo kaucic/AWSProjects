@@ -25,17 +25,17 @@ class FarkleBots:
         self._keptDiceVals = diceVals
         return
 
-    def get_keptDiceVals(self):
+    def get_keptDiceVals(self) -> list:
         return self._keptDiceVals
         
-    def get_previouslyKeptDice(self):
+    def get_previouslyKeptDice(self) -> list:
         return self._previouslyKeptDice
 
-    def clear_previouslyKeptDice(self):
+    def clear_previouslyKeptDice(self) -> list:
         self._previouslyKeptDice = [False for x in range(NDICE)]
-        return
+        return self._previouslyKeptDice
 
-    def update_previouslyKeptDice(self,keptDice):
+    def update_previouslyKeptDice(self,keptDice) -> list:
         # Update previouslyKeptDice
         for i in range(NDICE):
             self._previouslyKeptDice[i] = self._previouslyKeptDice[i] or keptDice[i]
@@ -199,7 +199,7 @@ class FarkleBots:
     def bot_do_turn(self,whichPolicy=1) -> int:
         # do roll_dice until Farkle or bank_score
         #   if not Farkle
-        #       bank_score or choose dice to roll
+        #       Use policy to bank_score or choose dice to roll
 
         turnScore = 0
         banked = False
@@ -210,8 +210,8 @@ class FarkleBots:
         farkled = score == 0
         if farkled == True:
             logging.info(f"You Farkled on your first roll!!")
-            # Sleep for 3 seconds to give time for browswer get_game_state to update
-            sleep(3.0)
+            # Sleep for 5 seconds to give time for browswer get_game_state to update
+            sleep(5)
         
         while farkled == False and banked == False:
             banked,keptDice = self.bot_policy(whichPolicy,diceVals,rolledDice,previouslyKeptDice,turnScore)
@@ -240,7 +240,7 @@ class FarkleBots:
                 self.clear_previouslyKeptDice()  # clear class variable
 
             # Sleep for 3 seconds to give time for browswer get_game_state to update
-            sleep(1./1000)
+            sleep(3)
 
         if farkled == True:
             turnScore = 0

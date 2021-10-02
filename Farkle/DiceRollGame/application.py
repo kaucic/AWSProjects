@@ -2,6 +2,7 @@ from flask import Flask, jsonify, json, Response, request
 from flask_cors import CORS
 
 import random
+from time import sleep
 
 import logging
 import doFlaskLogging
@@ -11,13 +12,12 @@ from FarkleBots import FarkleBots
 application = Flask(__name__)
 CORS(application)
 
-gameID = 0
 NDICE = 6
+gameID = 0
 NPlayers = 2
 # Note: Index 0 is not used, so Player 1 is index 1
 player = 1
-previouslyKeptDice = [False for x in range(NDICE)]
-diceVals = [1 for x in range(NDICE)]
+game = FarkleBots()  # Contains class variables _previouslyKeptDice and _keptDiceVals
 turnScore = 0
 totals = [0 for x in range(NPlayers+1)]
 playerNames = ['nobody' for x in range(NPlayers+1)]
@@ -31,28 +31,36 @@ def health_check():
 def init():
     logging.info(f"init GET called")
 
-    global gameID, NDICE, NPlayers, playerNames, player, diceVals, previouslyKeptDice, turnScore, totals
+    global gameID, NPlayers, playerNames, player, game, turnScore, totals
     gameID += 1
-    player = 1
-    previouslyKeptDice = [False for x in range(NDICE)]
-    diceVals = [1 for x in range(NDICE)]
-    turnScore = 0
-    totals = [0 for x in range(NPlayers+1)]
+    NPlayers = 2
     playerNames[1] = 'Bob'
     playerNames[2] = 'Ron'
-
-    body = {'gameID' : gameID, 'playerNames' : playerNames, 'player' : player, 'totals' : totals, 'turnScore' : turnScore, 'diceVals' : diceVals, 'previouslyKeptDice' : previouslyKeptDice}
+    player = 1
+    game = FarkleBots()
+    previouslyKeptDice = game.get_previouslyKeptDice()
+    diceVals = game.get_keptDiceVals()
+    turnScore = 0
+    totals = [0 for x in range(NPlayers+1)]
+   
+    body = {'gameID' : gameID, 'NPlayers' : NPlayers, 'playerNames' : playerNames, 'player' : player, 'totals' : totals, 'turnScore' : turnScore, 'diceVals' : diceVals, 'previouslyKeptDice' : previouslyKeptDice}
  
     statusCode = 200
     initResponse = {'body' : body, 'statusCode': statusCode}
     
+    # Test code to try out the bot
+    #logging.info("init calling bot_do_turn")
+    #foo = game.bot_do_turn()
+    #logging.info("init returned from bot_do_turn")
+    #sleep(00)
+
     return jsonify(initResponse)
 
 #@application.route('/roll_dice/<keep1>/<keep2>/<keep3>', methods=['GET', 'POST'])
 #def roll_dice(keep1,keep2,keep3):
 @application.route('/roll_dice', methods=['GET', 'POST'])
 def roll_dice():
-    global NDICE, NPlayers, player, previouslyKeptDice, diceVals, turnScore, totals
+    global player, game, turnScore
     
     # GET code is obsolete and no longer works
     # For GET invocations
@@ -91,49 +99,40 @@ def roll_dice():
     
     else:
         logging.info(f"ERROR in roll_dice, unhandled {request.method} called")
-
-    game = FarkleBots()
+  
     # Check to see if it is the calling clients turn
     if playerID == player:
         # Score the dice that were kept
         if any(keptDice):
+            diceVals = game.get_keptDiceVals()
             score, scoringDice = game.score_dice(diceVals,keptDice)
+            previouslyKeptDice = game.update_previouslyKeptDice(keptDice)
             logging.info(f"Scoring the dice that were kept: score is {score} count is {scoringDice}")
             turnScore += score
         # if no dice were kept then it must be the first roll of the turn
         else:
+            previouslyKeptDice = game.get_previouslyKeptDice()
             turnScore = 0
-
-        # Determine which dice to roll
-        diceToRoll = [True for x in range(NDICE)]
-        for i in range(NDICE):
-            diceToRoll[i] = not (previouslyKeptDice[i] or keptDice[i])
-        # If all dice have scored, clear flags and roll all dice
-        if not any(diceToRoll):
-            keptDice = [False for x in range(NDICE)]
-            previouslyKeptDice = [False for x in range(NDICE)]
-            diceToRoll = [True for x in range(NDICE)]
-
-        for i in range(NDICE):
-            if diceToRoll[i] == True:
-                diceVals[i] = random.randint(1,6)
-                logging.info(f"rolling die {i} value is {diceVals[i]}")
             
+        # If all dice have scored, clear previouslyKeptDice and roll all dice
+        if all(previouslyKeptDice):
+            game.clear_previouslyKeptDice()  # clear class variable
+
+        diceVals,previouslyKeptDice,rolledDice = game.roll_dice()
+        game.set_keptDiceVals(diceVals)  # update class variable
+                          
         body = { 'gameID' : gID, 'valid' : True, 'diceVals' : diceVals}
             
         # Check for Farkle
-        score, scoringDice = game.score_dice(diceVals, diceToRoll)
+        score, scoringDice = game.score_dice(diceVals,rolledDice)
         logging.info(f"Checking for Farkle: score is {score} count is {scoringDice}")
         if score > 0:
             body['Farkled'] = False;
-            for i in range(NDICE):
-                previouslyKeptDice[i] = previouslyKeptDice[i] or keptDice[i]
             body['previouslyKeptDice'] = previouslyKeptDice
         else: # Farkled, zero out turn score and pass dice to next player 
             body['Farkled'] = True;  
             turnScore = 0
-            keptDice = [False for x in range(NDICE)]
-            previouslyKeptDice = [False for x in range(NDICE)]
+            previouslyKeptDice = game.clear_previouslyKeptDice()  # clear class variable
             player += 1
             if player > NPlayers:
                 player = 1
@@ -147,14 +146,13 @@ def roll_dice():
         body = {  'gameID' : gID, 'valid' : False}
 
     statusCode = 200
-    #diceResponse = {**status, **body}
     diceResponse = {'body' : body, 'statusCode': statusCode}
 
     return jsonify(diceResponse)
 
 @application.route('/bank_score', methods=['GET', 'POST'])
 def bank_score():
-    global NDICE, NPlayers, player, previouslyKeptDice, diceVals, turnScore, totals
+    global player, game, turnScore, totals
 
     # For GET invocations
     if request.method == 'GET':
@@ -177,17 +175,11 @@ def bank_score():
     
     logging.info(f"Player number {playerID} has ended their turn.  Current Player number is {player}")
     
-    game = FarkleBots()
     body = {'gameID' : gID}
     # Check to see if it is the calling clients turn
     if playerID == player:
         # Compute player's total score
-        diceToScore = [True for x in range(NDICE)]
-        for i in range(NDICE):
-            diceToScore[i] = not previouslyKeptDice[i]
-        score, scoringDice = game.score_dice(diceVals,diceToScore)
-        logging.info(f"Determining points that were banked: score is {score} count is {scoringDice}")
-
+        score = game.bank_score()
         turnScore += score
         totals[player] += turnScore
 
@@ -197,7 +189,7 @@ def bank_score():
             player = 1
 
         # Clear all kept dice
-        previouslyKeptDice = [False for x in range(NDICE)]
+        previouslyKeptDice = game.clear_previouslyKeptDice()  # clear class variable
         
         body['valid'] = True
         body['player'] = player
@@ -224,8 +216,9 @@ def get_game_state():
     else:
         logging.info(f"ERROR in get_game_state, unhandled {request.method} request")
        
-    global NDICE, NPlayers, playerNames, player, previouslyKeptDice, diceVals, turnScore, totals
-    
+    previouslyKeptDice = game.get_previouslyKeptDice()
+    diceVals = game.get_keptDiceVals()
+
     body = { 'gameID' : gID, 'playerNames' : playerNames, 'player' : player, 'totals' : totals, 'turnScore' : turnScore, 'diceVals' : diceVals, 'previouslyKeptDice' : previouslyKeptDice }
     
     statusCode = 200
