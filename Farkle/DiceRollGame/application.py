@@ -118,7 +118,7 @@ def roll_dice():
                 
         # If all dice have scored, clear previouslyKeptDice and roll all dice
         if all(previouslyKeptDice):
-            game.clear_previouslyKeptDice()  # clear class variable
+            previousKeptDice = game.clear_previouslyKeptDice()  # clear class variable
 
         diceVals,previouslyKeptDice,rolledDice = game.roll_dice()
         rolledOnceOrMore = True
@@ -130,10 +130,9 @@ def roll_dice():
         score, scoringDice = game.score_dice(diceVals,rolledDice)
         logging.info(f"Checking for Farkle: score is {score} count is {scoringDice}")
         if score > 0:
-            body['Farkled'] = False;
-            body['previouslyKeptDice'] = previouslyKeptDice
+            body['Farkled'] = False
         else: # Farkled, zero out turn score and pass dice to next player 
-            body['Farkled'] = True;  
+            body['Farkled'] = True  
             turnScore = 0
             previouslyKeptDice = game.clear_previouslyKeptDice()  # clear class variable
             rolledOnceOrMore = False # reset global variable when the turn passes to the next player
@@ -149,7 +148,7 @@ def roll_dice():
     else:
         errMsg = f"ERROR in roll_dice, playerID is {playerID}, but current player is {player}"
         logging.error(errMsg)
-        body = {  'gameID' : gID, 'valid' : False, 'errMsg' : errMsg}
+        body = {'gameID' : gID, 'valid' : False, 'errMsg' : errMsg}
 
     statusCode = 200
     diceResponse = {'body' : body, 'statusCode': statusCode}

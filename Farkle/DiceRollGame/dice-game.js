@@ -76,7 +76,7 @@ function updateRoll(dice) {
 
     if (valid == true) {
         let player = b.player;
-        console.log('Returned Player is ',player);
+        console.log('updateRoll Returned Player is ',player);
 
         let Farkled = b.Farkled;
         console.log('Farkled is ',Farkled);
@@ -127,9 +127,12 @@ function updateTurn(turn) {
         // Inform next Player that it is their turn
         updateTurnView(player);
         playerID = b.player; // Global variable, will be removed when game logins work
-    } else {
+    }
+    else {
         alert (b.errMsg);
     }
+
+    return b;
 }
 
 // Function to parse json returned after a change in the game state and update the HTML
@@ -148,7 +151,7 @@ function updateGameState(state) {
     //console.log('State Update Totals',totals);
 
     let die = b.diceVals;
-    previouslyKeptDice = b.previouslyKeptDice; // Global variable
+    previouslyKeptDice = b.previouslyKeptDice; // Update Global variable
     //console.log('Returned die are ',die);
     //console.log('Returned dice kept are ', previouslyKeptDice);
     //console.log('rolledOnceOrMore is', b.rolledOnceOrMore);

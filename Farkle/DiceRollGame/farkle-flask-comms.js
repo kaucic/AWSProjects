@@ -31,13 +31,35 @@ async function serverCall(GetPost,endPoint,rawBody={}) {
     return jsObject;
 }
 
+// Long Poll the server every one second to get the game state and potentially do Bot step
+async function getGameState() {
+    // For HTTP GET, Append the parameters to the URL
+    var gameStateAPI = gameEndpoint + "/get_game_state" + "?gameID=" + gameID;
+    
+    // Make this a blocking call
+    let jsObject = await serverCall('get',gameStateAPI);
+    let gameStateDict = updateGameState(jsObject);
+    console.log('getGameState returned player is ', gameStateDict.player, " XXX");
+   
+    // check to see if it is the bots turn and if so, do one step in a bot turn
+    if (gameStateDict.player == 2) {
+        doOneBotStep(gameStateDict);
+    }     
+    setTimeout(function () {
+        getGameState();
+    }, 5000);
+}
+
 // Initialize the game for two people to play using one browswer
 function initGame() {
     var initGameAPI = gameEndpoint + "/init";
-    console.log('GET URL is ',initGameAPI);
+    console.log('initGame GET URL is ',initGameAPI);
 
     // Make this a blocking call
     serverCall('get',initGameAPI).then(updateGameState);
+
+    // Start long polling
+    getGameState();
 }
 
 // Call the Server to roll the dice
@@ -53,15 +75,14 @@ function rollDice(keptDice) {
         // Pass as Array of Booleans
         //diceAPI = baseAPI + "?gameID=" + gameID + "&playerID=" + playerID + "&keep=" + keptDice;
         console.log('GET URL is ',diceAPI);
-    } else {
+    }
+    else {
         // For HTTP POST, Put params in body
         diceAPI = baseAPI;    
         let raw = {'gameID' : gameID, 'playerID': playerID, 'keptDice': keptDice};
         // Make this a blocking call
         rollDiceDict = serverCall('post',diceAPI,raw).then(updateRoll)
     }
-
-    return rollDiceDict;
 }
 
 // Call the Server to end players turn and bank score
@@ -81,7 +102,7 @@ function bankScore() {
         bankAPI = baseAPI;    
         let raw = {'gameID' : gameID, 'playerID': playerID};
         // Make this a blocking call           
-        serverCall('post',bankAPI,raw).then(updateTurn);
+        let bankScoreDict = serverCall('post',bankAPI,raw).then(updateTurn);
     }
 }
 
@@ -105,26 +126,4 @@ function doBotPolicy(gameStateDict) {
     let raw = {'gameID' : gameID, 'diceVals' : diceVals, 'diceToPickFrom' : diceToPickFrom, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score};
     // Make this a blocking call           
     let botPolicyDict = serverCall('post',botPolicyAPI,raw).then(implementPolicy);
-    //console.log('doBotPolicy botPolicyDict is ', botPolicyDict, ' XXX');
-    
-    return botPolicyDict;
-}
-
-// Long Poll the server every one second to get the game state
-async function getGameState() {
-    // For HTTP GET, Append the parameters to the URL
-    var gameStateAPI = gameEndpoint + "/get_game_state" + "?gameID=" + gameID;
-    
-    // Make this a blocking call
-    let jsObject = await serverCall('get',gameStateAPI);
-    let gameStateDict = updateGameState(jsObject);
-    console.log('getGameState returned player is ', gameStateDict.player, " XXX");
-    //alert('In getGameState. player is ' + gameStateDict.player + ' XXX');
-    // check to see if it is the bots turn and if so, do one step in a bot turn
-    if (gameStateDict.player == 2) {
-        doOneBotStep(gameStateDict);
-    }     
-    setTimeout(function () {
-        getGameState();
-    }, 10000);
 }
