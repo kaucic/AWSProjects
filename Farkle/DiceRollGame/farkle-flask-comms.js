@@ -11,22 +11,22 @@ async function serverCall(GetPost,endPoint,rawBody={}) {
             headers: { 'Content-Type' : 'application/json'},
             body: JSON.stringify(rawBody)
         };
-        console.log('POST Endpoint ' + endPoint + ' options are ' + requestOptions);
+        console.log('POST Endpoint ', endPoint, ' options are ', requestOptions);
     }
     // GET
     else {
-        console.log('GET Endpoint ' + endPoint); 
+        console.log('GET Endpoint ', endPoint); 
     }
 
     let jsObject = await fetch(endPoint,requestOptions)
-        .then(function (response) { 
-            console.log('serverCall: Return status ', response.status); // 200
-            console.log(response.statusText); // OK
-            return response.json();  // parses JSON response into native JavaScript objects
-        })
-        .catch(function(error) {
-            console.log('ERROR in serverCall fetch ', error);
-        })
+    .then(function (response) { 
+        console.log('serverCall: Return status ', response.status); // 200
+        //console.log(response.statusText); // OK
+        return response.json();  // parses JSON response into native JavaScript objects
+    })
+    .catch(function(error) {
+        console.log('ERROR in serverCall fetch ', error);
+    })
 
     return jsObject;
 }
@@ -41,22 +41,11 @@ function initGame() {
 }
 
 // Call the Server to roll the dice
-function rollDice() {
+// Returns a Java Script roll dice dictionary
+function rollDice(keptDice) {
     var baseAPI = gameEndpoint + "/roll_dice";
-
-    // Get which dice the customer wants to keep
-    let keep = getCheckboxValues();
-    console.log('Checkbox values are ', keep);
-    
-    // Split them into what was previously kept and what is kept this roll
-    let keptDice = keep;
-    for (i=0; i < NDICE; i++) {
-        if (previouslyKeptDice[i] == true) {
-            keptDice[i] = false;
-        }
-    }
-   
     var diceAPI;
+
     if (false) {
         // HTTP Get is obsolote and no longer works
         // For HTTP GET, Append the parameters to the URL
@@ -69,8 +58,10 @@ function rollDice() {
         diceAPI = baseAPI;    
         let raw = {'gameID' : gameID, 'playerID': playerID, 'keptDice': keptDice};
         // Make this a blocking call
-        serverCall('post',diceAPI,raw).then(updateRoll)
+        rollDiceDict = serverCall('post',diceAPI,raw).then(updateRoll)
     }
+
+    return rollDiceDict;
 }
 
 // Call the Server to end players turn and bank score
@@ -94,18 +85,51 @@ function bankScore() {
     }
 }
 
+// Call the Server to determine whether to roll or bank and which dice to keep
+// Returns a Java Script policy dictionary
+function doBotPolicy(gameStateDict) {
+    var botPolicyAPI = gameEndpoint + "/do_bot_policy";
+    if (false) {
+        let b = {};
+        b['banked'] = true;
+        return b;
+    }
+    else {
+        // Get parametes from gameStateDict
+        let diceVals = gameStateDict.diceVals;
+        let prevKeptDice = gameStateDict.previouslyKeptDice;
+        let diceToPickFrom = prevKeptDice;
+        for (i=0; i < NDICE; i++) {
+            diceToPickFrom[i] = !prevKeptDice[i];
+        }
+        let score = gameStateDict.turnScore;
+      
+        // For HTTP POST, Put params in body   
+        let raw = {'gameID' : gameID, 'diceVals' : diceVals, 'diceToPickFrom' : diceToPickFrom, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score};
+        // Make this a blocking call           
+        let botPolicyDict = serverCall('post',botPolicyAPI,raw).then(parsePolicy);
+        console.log('doBotPolicy botPolicyDict is ', botPolicyDict, ' XXX');
+        
+        return botPolicyDict;
+    }
+}
+
 // Long Poll the server every one second to get the game state
 async function getGameState() {
     // For HTTP GET, Append the parameters to the URL
     var gameStateAPI = gameEndpoint + "/get_game_state" + "?gameID=" + gameID;
     console.log('GET URL is ',gameStateAPI);
     
+    // Make this a blocking call
+    let jsObject = await serverCall('get',gameStateAPI);
+    let gameStateDict = updateGameState(jsObject);
+    console.log('getGameState returned player is ', gameStateDict.player, " XXX");
+    //alert('In getGameState. player is ' + gameStateDict.player + ' XXX');
+    // check to see if it is the bots turn and if so, do one step in a bot turn
+    if (gameStateDict.player == 2) {
+        doOneBotStep(gameStateDict);
+    }     
     setTimeout(function () {
-        // Make this a blocking call
-        serverCall('get',gameStateAPI).then(updateGameState);
         getGameState();
-    }, 1000);
+    }, 5000);
 }
-
-// Long Poll the server to get the game state
-//getGameState();
