@@ -96,7 +96,7 @@ def roll_dice():
         logging.info(f"[playerID is {playerID} keptDice is {keptDice}")
     
     else:
-        logging.info(f"ERROR in roll_dice, unhandled {request.method} called")
+        logging.error(f"ERROR in roll_dice, unhandled {request.method} called")
   
     # Check to see if it is the calling clients turn
     if playerID == player:
@@ -107,19 +107,32 @@ def roll_dice():
         elif any(keptDice):
             diceVals = game.get_keptDiceVals()
             score, scoringDice = game.score_dice(diceVals,keptDice)
-            previouslyKeptDice = game.update_previouslyKeptDice(keptDice)
-            logging.info(f"Scoring the dice that were kept: score is {score} count is {scoringDice}")
-            turnScore += score
-        # if no dice were kept then the user made an error
-        else:
-            errMsg = f"ERROR in roll_dice, playerID is {playerID} and no dice were kept"
-            logging.error(errMsg)
-            previouslyKeptDice = game.get_previouslyKeptDice()
+            # Error Check to see that the player only kept dice that scored
+            numDiceKept = sum(keptDice)
+            if numDiceKept > scoringDice:
+                errMsg = f"ERROR in roll_dice, playerID {playerID} kept dice that didn't score"
+                logging.error(errMsg)
+                body = {'gameID' : gID, 'valid' : False, 'errMsg' : errMsg}
+                statusCode = 200
+                diceResponse = {'body' : body, 'statusCode': statusCode}
+                return jsonify(diceResponse)
+            else:
+                previouslyKeptDice = game.update_previouslyKeptDice(keptDice)
+                logging.info(f"Scoring the dice that were kept: score is {score} count is {scoringDice}")
+                turnScore += score
                 
-        # If all dice have scored, clear previouslyKeptDice and roll all dice
-        if all(previouslyKeptDice):
-            previousKeptDice = game.clear_previouslyKeptDice()  # clear class variable
-
+                # If all dice have scored, clear previouslyKeptDice and roll all dice
+                if all(previouslyKeptDice):
+                    previousKeptDice = game.clear_previouslyKeptDice()  # clear class variable
+        # Error the player did not keep any dice
+        else:
+            errMsg = f"ERROR in roll_dice, playerID {playerID} did not keep any dice"
+            logging.error(errMsg)
+            body = {'gameID' : gID, 'valid' : False, 'errMsg' : errMsg}
+            statusCode = 200
+            diceResponse = {'body' : body, 'statusCode': statusCode}
+            return jsonify(diceResponse)
+                
         diceVals,previouslyKeptDice,rolledDice = game.roll_dice()
         rolledOnceOrMore = True
         game.set_keptDiceVals(diceVals)  # update class variable
@@ -145,6 +158,7 @@ def roll_dice():
         body['previouslyKeptDice'] = previouslyKeptDice
         body['rolledOnceOrMore'] = rolledOnceOrMore
 
+    # Error, it is not the player's turn
     else:
         errMsg = f"ERROR in roll_dice, playerID is {playerID}, but current player is {player}"
         logging.error(errMsg)
@@ -234,12 +248,11 @@ def do_bot_policy():
     logging.info(f"do_bot_policy POST received json {data}")
     gID = data['gameID']
     diceVals = data['diceVals']
-    diceToPickFrom = data['diceToPickFrom']
     previouslyKeptDice = data['previouslyKeptDice']
     score = data['turnScore']
 
-    logging.info(f"do_bot_policy entered with diceVals {diceVals} diceToPickFrom {diceToPickFrom} previouslyKeptDice {previouslyKeptDice} and turnScore {score}")
-    bank, diceToKeep = game.bot1_policy(diceVals,diceToPickFrom,previouslyKeptDice,score)
+    logging.info(f"do_bot_policy entered with diceVals {diceVals} previouslyKeptDice {previouslyKeptDice} and turnScore {score}")
+    bank, diceToKeep = game.bot1_policy(diceVals,previouslyKeptDice,score)
     
     body = {'gameID' : gID}
     body['banked'] = bank

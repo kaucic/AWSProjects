@@ -114,16 +114,12 @@ function doBotPolicy(gameStateDict) {
     // Get parametes from gameStateDict
     let diceVals = gameStateDict.diceVals;
     let prevKeptDice = gameStateDict.previouslyKeptDice;
-    let diceToPickFrom = Array(NDICE).fill(true);
-    for (i=0; i < NDICE; i++) {
-        diceToPickFrom[i] = !prevKeptDice[i];
-    }
     let score = gameStateDict.turnScore;
     
-    console.log('In doBotPolicy prevKeptDice ', prevKeptDice, ' diceToPickFrom ', diceToPickFrom);
+    console.log('In doBotPolicy prevKeptDice ', prevKeptDice);
 
     // For HTTP POST, Put params in body   
-    let raw = {'gameID' : gameID, 'diceVals' : diceVals, 'diceToPickFrom' : diceToPickFrom, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score};
+    let raw = {'gameID' : gameID, 'diceVals' : diceVals, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score};
     // Make this a blocking call           
     let botPolicyDict = serverCall('post',botPolicyAPI,raw).then(implementPolicy);
 }

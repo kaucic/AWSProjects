@@ -138,11 +138,14 @@ class FarkleBots:
     # Determine whether to stop rolling and bank points or
     # to continue rolling the dice including which dice to keep
     # Return bank (True) or roll (False) and list of which dice to keep
-    def bot1_policy(self,diceVals,diceToPickFrom,previouslyKeptDice,turnScore) -> Tuple[bool,list]:
-        logging.info(f"bot1_policy called with diceVals {diceVals} diceToPickFrom {diceToPickFrom} previouslyKeptDice {previouslyKeptDice} starting turnScore {turnScore}")
+    def bot1_policy(self,diceVals,previouslyKeptDice,turnScore) -> Tuple[bool,list]:
+        logging.info(f"bot1_policy called with diceVals {diceVals} previouslyKeptDice {previouslyKeptDice} starting turnScore {turnScore}")
         
         bank = True
         diceToKeep = [False for x in range(NDICE)]
+        diceToPickFrom = [False for x in range(NDICE)]
+        for i in range(NDICE):
+            diceToPickFrom[i] = not self._previouslyKeptDice[i]
         numDiceUsed = sum(diceToPickFrom)
         score, scoringDice = self.score_dice(diceVals,diceToPickFrom)
         
@@ -187,9 +190,9 @@ class FarkleBots:
         return bank, diceToKeep
 
     # Select the appropriate policy to use based on whichPolicy selected
-    def bot_policy(self,whichPolicy,diceVals,diceToPickFrom,previouslyKeptDice,turnScore) -> Tuple[bool,list]:
+    def bot_policy(self,whichPolicy,diceVals,previouslyKeptDice,turnScore) -> Tuple[bool,list]:
         if whichPolicy == 1:
-            return self.bot1_policy(diceVals,diceToPickFrom,previouslyKeptDice,turnScore)
+            return self.bot1_policy(diceVals,previouslyKeptDice,turnScore)
         else:
             logging.error(f"ERROR in bot_policy, whichPolicy is {whichPolicy}")
     
@@ -210,11 +213,11 @@ class FarkleBots:
         farkled = score == 0
         if farkled == True:
             logging.info(f"You Farkled on your first roll!!")
-            # Sleep for 5 seconds to give time for browswer get_game_state to update
-            sleep(5)
+            # Sleep for 3 seconds to give time for browswer get_game_state to update
+            sleep(3)
         
         while farkled == False and banked == False:
-            banked,keptDice = self.bot_policy(whichPolicy,diceVals,rolledDice,previouslyKeptDice,turnScore)
+            banked,keptDice = self.bot_policy(whichPolicy,diceVals,previouslyKeptDice,turnScore)
    
             if banked == False:
                 # Determine how many points the selected dice are worth
@@ -239,7 +242,7 @@ class FarkleBots:
                 turnScore += score
                 self.clear_previouslyKeptDice()  # clear class variable
 
-            # Sleep for 3 seconds to give time for browswer get_game_state to update
+            # Sleep for 3 seconds to give time for browser get_game_state to update
             sleep(3)
 
         if farkled == True:

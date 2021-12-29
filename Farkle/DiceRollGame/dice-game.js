@@ -82,23 +82,26 @@ function updateRoll(dice) {
         console.log('Farkled is ',Farkled);
         //console.log('rolledOnceOrMore is', b.rolledOnceOrMore)
         let die = b.diceVals;
-        previouslyKeptDice = b.previouslyKeptDice; // Update Global variable for dice that are set aside
         let turnScore = b.turnScore;
-        console.log('Returned die are ',die);
-        console.log('Returned dice kept are ', previouslyKeptDice);
-        console.log('Returned turnScore is ',turnScore);
-
+        console.log('updateRoll die are ',die);
+        console.log('updateRoll dice kept are ', previouslyKeptDice);
+        console.log('updateRoll turnScore is ',turnScore);
+        
         updateDiceView(player,die,turnScore);
-        updateCheckboxes(previouslyKeptDice);
         if (Farkled == true) {
             updateMessage("Farkle!");
-        }
-        setTimeout(function () {
-            updateTurnView(player);
+            setTimeout(function() {
+                updateTurnView(player);
             }, 2000);
-        playerID = b.player; // Global variable, will be removed when game logins work
+        }
 
-    } else {
+        previouslyKeptDice = b.previouslyKeptDice; // Update Global variable for dice that are set aside
+        updateCheckboxes(previouslyKeptDice);
+      
+        playerID = b.player; // Global variable, will be removed when game logins work
+    }
+
+    else {
         alert(b.errMsg);
     }
 
