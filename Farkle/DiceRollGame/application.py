@@ -37,7 +37,7 @@ def init():
     gameID += 1
     NPlayers = 2
     playerNames[1] = 'Bob'
-    playerNames[2] = 'Ron'
+    playerNames[2] = 'Bot'
     player = 1 # Global variable representing whose turn it is.  Will be replaced with a game_setup API
     game = FarkleBots()
     rolledOnceOrMore = False # Global variable to identify a player's first roll
@@ -50,12 +50,6 @@ def init():
  
     statusCode = 200
     initResponse = {'body' : body, 'statusCode': statusCode}
-    
-    # Test code to try out the bot
-    #logging.info("init calling bot_do_turn")
-    #foo = game.bot_do_turn()
-    #logging.info("init returned from bot_do_turn")
-    #sleep(00)
 
     return jsonify(initResponse)
 
@@ -230,6 +224,12 @@ def bank_score():
 def do_bot_policy():
     global gameID, game
     
+    # Test code to try out the bot
+    #logging.info("do_bot_policy calling bot_do_turn")
+    #foo = game.bot_do_turn()
+    #logging.info("init returned from bot_do_turn")
+    #sleep(00)
+
     logging.info(f"do_bot_policy POST called")
     data = request.get_json()
     logging.info(f"do_bot_policy POST received json {data}")
@@ -239,6 +239,7 @@ def do_bot_policy():
     previouslyKeptDice = data['previouslyKeptDice']
     score = data['turnScore']
 
+    logging.info(f"do_bot_policy entered with diceVals {diceVals} diceToPickFrom {diceToPickFrom} previouslyKeptDice {previouslyKeptDice} and turnScore {score}")
     bank, diceToKeep = game.bot1_policy(diceVals,diceToPickFrom,previouslyKeptDice,score)
     
     body = {'gameID' : gID}

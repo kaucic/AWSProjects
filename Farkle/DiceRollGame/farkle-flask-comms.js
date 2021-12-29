@@ -89,36 +89,31 @@ function bankScore() {
 // Returns a Java Script policy dictionary
 function doBotPolicy(gameStateDict) {
     var botPolicyAPI = gameEndpoint + "/do_bot_policy";
-    if (false) {
-        let b = {};
-        b['banked'] = true;
-        return b;
+
+    // Get parametes from gameStateDict
+    let diceVals = gameStateDict.diceVals;
+    let prevKeptDice = gameStateDict.previouslyKeptDice;
+    let diceToPickFrom = Array(NDICE).fill(true);
+    for (i=0; i < NDICE; i++) {
+        diceToPickFrom[i] = !prevKeptDice[i];
     }
-    else {
-        // Get parametes from gameStateDict
-        let diceVals = gameStateDict.diceVals;
-        let prevKeptDice = gameStateDict.previouslyKeptDice;
-        let diceToPickFrom = prevKeptDice;
-        for (i=0; i < NDICE; i++) {
-            diceToPickFrom[i] = !prevKeptDice[i];
-        }
-        let score = gameStateDict.turnScore;
-      
-        // For HTTP POST, Put params in body   
-        let raw = {'gameID' : gameID, 'diceVals' : diceVals, 'diceToPickFrom' : diceToPickFrom, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score};
-        // Make this a blocking call           
-        let botPolicyDict = serverCall('post',botPolicyAPI,raw).then(parsePolicy);
-        console.log('doBotPolicy botPolicyDict is ', botPolicyDict, ' XXX');
-        
-        return botPolicyDict;
-    }
+    let score = gameStateDict.turnScore;
+    
+    console.log('In doBotPolicy prevKeptDice ', prevKeptDice, ' diceToPickFrom ', diceToPickFrom);
+
+    // For HTTP POST, Put params in body   
+    let raw = {'gameID' : gameID, 'diceVals' : diceVals, 'diceToPickFrom' : diceToPickFrom, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score};
+    // Make this a blocking call           
+    let botPolicyDict = serverCall('post',botPolicyAPI,raw).then(implementPolicy);
+    //console.log('doBotPolicy botPolicyDict is ', botPolicyDict, ' XXX');
+    
+    return botPolicyDict;
 }
 
 // Long Poll the server every one second to get the game state
 async function getGameState() {
     // For HTTP GET, Append the parameters to the URL
     var gameStateAPI = gameEndpoint + "/get_game_state" + "?gameID=" + gameID;
-    console.log('GET URL is ',gameStateAPI);
     
     // Make this a blocking call
     let jsObject = await serverCall('get',gameStateAPI);
@@ -131,5 +126,5 @@ async function getGameState() {
     }     
     setTimeout(function () {
         getGameState();
-    }, 5000);
+    }, 10000);
 }

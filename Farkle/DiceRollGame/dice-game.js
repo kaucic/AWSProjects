@@ -68,19 +68,19 @@ function getCheckboxValues() {
 }
 
 // Function to parse dice json returned from server and update the HTML
+// Input is Java Script object return from back end
 function updateRoll(dice) {
     let b = dice.body;
     let gID = b.gameID;
     let valid = b.valid;
-    console.log('updateRoll validity is ', valid);
 
     if (valid == true) {
-        playerID = b.player; // Global variable, will be removed when game logins work
         let player = b.player;
         console.log('Returned Player is ',player);
 
         let Farkled = b.Farkled;
         console.log('Farkled is ',Farkled);
+        //console.log('rolledOnceOrMore is', b.rolledOnceOrMore)
         let die = b.diceVals;
         previouslyKeptDice = b.previouslyKeptDice; // Update Global variable for dice that are set aside
         let turnScore = b.turnScore;
@@ -96,10 +96,13 @@ function updateRoll(dice) {
         setTimeout(function () {
             updateTurnView(player);
             }, 2000);
+        playerID = b.player; // Global variable, will be removed when game logins work
 
     } else {
-        alert("It is not your turn to roll.");
+        alert(b.errMsg);
     }
+
+    return b;
 }
 
 // Function to parse json returned after a player completes their turn and update the HTML
@@ -107,12 +110,10 @@ function updateTurn(turn) {
     var b = turn.body;
     let gID = b.gameID;
     let valid = b.valid;
-    console.log('updateTurn validity is ', valid);
 
     if (valid == true) {
-        playerID = b.player; // Global variable, will be removed when game logins work
         let player = b.player;
-        console.log('Turn complete.  Returned new Player number is ', player);
+        console.log('updateTurn complete.  Returned new Player number is ', player);
 
         let turnScore = b.turnScore;
         let totals = b.totals;
@@ -125,8 +126,9 @@ function updateTurn(turn) {
 
         // Inform next Player that it is their turn
         updateTurnView(player);
+        playerID = b.player; // Global variable, will be removed when game logins work
     } else {
-        alert ('It is not your turn.  You are not allowed to bank your score');
+        alert (b.errMsg);
     }
 }
 
@@ -134,9 +136,9 @@ function updateTurn(turn) {
 function updateGameState(state) {
     var b = state.body;
     let gID = b.gameID;
-    playerID = b.player; // Global variable, will be removed when game logins work
     let player = b.player;
-    console.log('State Update returned Player number ', player);
+    //console.log('updateGameState returned Player number ', player);
+    //alert('In updateGameState, player is ' + b.player + ' XXX');
 
     playerNames = b.playerNames;  // Global variable
     //console.log('State Update playerNames ',playerNames);
@@ -149,15 +151,21 @@ function updateGameState(state) {
     previouslyKeptDice = b.previouslyKeptDice; // Global variable
     //console.log('Returned die are ',die);
     //console.log('Returned dice kept are ', previouslyKeptDice);
+    //console.log('rolledOnceOrMore is', b.rolledOnceOrMore);
 
     updatePlayerNamesView(playerNames);
     updateTurnView(player);
     updateDiceView(player,die,totals[player]);
     updateTurnScoreAndTotalsView(turnScore,totals);
-    // Only update the check boxes when you are not the player to not interfere with selections being made
+
+    playerID = b.player; // Global variable, will be removed when game logins work
+
+    // Only update the check boxes when you are not the player whose turn it is to not interfere with selections being made
     if (playerID != player) {
-        //updateCheckboxes(previouslyKeptDice);
+        updateCheckboxes(previouslyKeptDice);
     }
+    
+    return b;
 }
 
 // Function to change the player name for this client and start the game
