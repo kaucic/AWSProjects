@@ -1,6 +1,7 @@
 var gameEndpoint = 'http://localhost:5000'; // example: 'http://mythi-publi-abcd12345-01234567890123.elb.us-east-1.amazonaws.com' 
 
 // Make GET or POST call to backend Flask server
+// Returns the extracted body from the Servers json packet
 async function serverCall(GetPost,endPoint,rawBody={}) {
     var requestOptions = {};
     // POST
@@ -28,7 +29,10 @@ async function serverCall(GetPost,endPoint,rawBody={}) {
         console.log('ERROR in serverCall fetch ', error);
     })
 
-    return jsObject;
+    // Extract bddy from returned json
+    let myBody = jsObject.body;
+
+    return myBody;
 }
 
 // Long Poll the server every one second to get the game state and potentially do Bot step
@@ -42,12 +46,13 @@ async function getGameState() {
     console.log('getGameState returned player is ', gameStateDict.player, " XXX");
    
     // check to see if it is the bots turn and if so, do one step in a bot turn
-    if (gameStateDict.player == 2) {
+    //if (gameStateDict.player == 2) {
+    if (true) {
         doOneBotStep(gameStateDict);
     }     
     setTimeout(function () {
         getGameState();
-    }, 5000);
+    }, 2000);
 }
 
 // Initialize the game for two people to play using one browswer
@@ -120,6 +125,12 @@ function doBotPolicy(gameStateDict) {
 
     // For HTTP POST, Put params in body   
     let raw = {'gameID' : gameID, 'diceVals' : diceVals, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score};
+    raw['whichPolicy'] = playerID;
+
     // Make this a blocking call           
     let botPolicyDict = serverCall('post',botPolicyAPI,raw).then(implementPolicy);
+    //raw['action'] = 'do_bot_policy';
+    //foo = JSON.stringify(raw);
+    //let botPolicyDict = lambdaCall(foo).then(implementPolicy);
 }
+

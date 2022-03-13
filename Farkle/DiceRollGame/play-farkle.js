@@ -16,7 +16,7 @@ function humanRollDice() {
 }
 
 function implementPolicy(decision) {
-    var b = decision.body;
+    var b = decision;
     let gID = b.gameID;
     let banked = b.banked;
     let diceToKeep = b.diceToKeep

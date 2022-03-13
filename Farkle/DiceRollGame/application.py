@@ -106,10 +106,10 @@ def roll_dice():
         # Score the dice that were kept
         elif any(keptDice):
             diceVals = game.get_keptDiceVals()
-            score, scoringDice = game.score_dice(diceVals,keptDice)
+            score, numDiceThatScored, scoringDice = game.score_dice(diceVals,keptDice)
             # Error Check to see that the player only kept dice that scored
             numDiceKept = sum(keptDice)
-            if numDiceKept > scoringDice:
+            if numDiceKept > numDiceThatScored:
                 errMsg = f"ERROR in roll_dice, playerID {playerID} kept dice that didn't score"
                 logging.error(errMsg)
                 body = {'gameID' : gID, 'valid' : False, 'errMsg' : errMsg}
@@ -118,7 +118,7 @@ def roll_dice():
                 return jsonify(diceResponse)
             else:
                 previouslyKeptDice = game.update_previouslyKeptDice(keptDice)
-                logging.info(f"Scoring the dice that were kept: score is {score} count is {scoringDice}")
+                logging.info(f"Scoring the dice that were kept: score is {score} numDiceThatScored is {numDiceThatScored} scoringDice {scoringDice}")
                 turnScore += score
                 
                 # If all dice have scored, clear previouslyKeptDice and roll all dice
@@ -140,8 +140,8 @@ def roll_dice():
         body = { 'gameID' : gID, 'valid' : True, 'diceVals' : diceVals}
             
         # Check for Farkle
-        score, scoringDice = game.score_dice(diceVals,rolledDice)
-        logging.info(f"Checking for Farkle: score is {score} count is {scoringDice}")
+        score, numDiceThatScored, scoringDice = game.score_dice(diceVals,rolledDice)
+        logging.info(f"Checking for Farkle: score is {score} numDiceThatScored is {numDiceThatScored}")
         if score > 0:
             body['Farkled'] = False
         else: # Farkled, zero out turn score and pass dice to next player 
@@ -251,8 +251,16 @@ def do_bot_policy():
     previouslyKeptDice = data['previouslyKeptDice']
     score = data['turnScore']
 
-    logging.info(f"do_bot_policy entered with diceVals {diceVals} previouslyKeptDice {previouslyKeptDice} and turnScore {score}")
-    bank, diceToKeep = game.bot1_policy(diceVals,previouslyKeptDice,score)
+    if 'whichPolicy' in data:
+        whichPolicy = data['whichPolicy']
+    else:
+        whichPolicy = 1
+    logging.info(f"do_bot_policy entered with diceVals {diceVals} previouslyKeptDice {previouslyKeptDice} turnScore {score} and whichPolicy {whichPolicy}")    
+
+    if whichPolicy == 1:
+        bank, diceToKeep = game.bot1_policy(diceVals,previouslyKeptDice,score)
+    else:
+        bank, diceToKeep = game.bot2_policy(diceVals,previouslyKeptDice,score)
     
     body = {'gameID' : gID}
     body['banked'] = bank
