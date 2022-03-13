@@ -12,15 +12,13 @@ from FarkleBots import FarkleBots
 application = Flask(__name__)
 CORS(application)
 
-NDICE = 6
-
 NPlayers = 2 # Global Game variable
 # Note: Index 0 is not used, so Player 1 is index 1
 playerNames = ['nobody' for x in range(NPlayers+1)] # Global Game variable
 totals = [0 for x in range(NPlayers+1)] # Global Game variable indicating everyone's score
 gameID = 0 # Global ID for the game with these players
 
-game = FarkleBots(NDICE) # Global Dice variable that contains variables _previouslyKeptDice and _keptDiceVals
+game = FarkleBots() # Global Dice variable that contains variables _previouslyKeptDice and _keptDiceVals
 # Note: Index 0 is not used, so Player 1 is index 1
 player = 1 # Global Turn variable representing whose turn it is
 rolledOnceOrMore = False;  # Global Turn variable to indicate whether or not current player has rolled
@@ -42,7 +40,7 @@ def init():
     playerNames[1] = 'Bot1'
     playerNames[2] = 'Bot2'
     player = 1 # Global variable representing whose turn it is.  Will be replaced with a game_setup API
-    game = FarkleBots(NDICE)
+    game = FarkleBots()
     rolledOnceOrMore = False # Global variable to indicate whether or not current player has rolled
     previouslyKeptDice = game.get_previouslyKeptDice()
     diceVals = game.get_keptDiceVals()
@@ -73,6 +71,7 @@ def roll_dice():
         playerID = request.args.get('playerID')
         logging.info(f"roll_dice GET received: playerID={playerID}")
         # Need to convert string on command line to Boolean
+        NDICE = 6
         keep_str = ['false' for x in range(NDICE)]
         keep_str[0] = request.args.get('keep1')
         keep_str[1] = request.args.get('keep2')
