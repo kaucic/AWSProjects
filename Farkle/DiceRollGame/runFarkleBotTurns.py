@@ -30,5 +30,5 @@ def run_bot_turns(N,whichPolicy,fname):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    run_bot_turns(1000,1,'scores1.txt')
-    #run_bot_turns(1000,2,'scores2.txt')
+    run_bot_turns(5000,1,'scores1.txt')
+    #run_bot_turns(5000,2,'scores2.txt')

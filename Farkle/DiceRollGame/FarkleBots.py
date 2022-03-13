@@ -13,11 +13,10 @@ from time import sleep
 import logging
 import doFlaskLogging
 
-NDICE = 6
-
 class FarkleBots:
-    def __init__(self):
-        self._keptDiceVals = [6 for x in range(NDICE)]
+    def __init__(self,NDICE=6):
+        self._NDICE = NDICE
+        self._keptDiceVals = [5 for x in range(self._NDICE)]
         self.clear_previouslyKeptDice()       
         return
 
@@ -32,12 +31,12 @@ class FarkleBots:
         return self._previouslyKeptDice
 
     def clear_previouslyKeptDice(self) -> list:
-        self._previouslyKeptDice = [False for x in range(NDICE)]
+        self._previouslyKeptDice = [False for x in range(self._NDICE)]
         return self._previouslyKeptDice
 
     def update_previouslyKeptDice(self,keptDice) -> list:
         # Update previouslyKeptDice
-        for i in range(NDICE):
+        for i in range(self._NDICE):
             self._previouslyKeptDice[i] = self._previouslyKeptDice[i] or keptDice[i]
         return self._previouslyKeptDice
 
@@ -142,11 +141,11 @@ class FarkleBots:
     def roll_dice(self) -> Tuple[list,list]:
         diceVals = self._keptDiceVals
         # Determine which dice to roll
-        diceToRoll = [True for x in range(NDICE)]
-        for i in range(NDICE):
+        diceToRoll = [True for x in range(self._NDICE)]
+        for i in range(self._NDICE):
             diceToRoll[i] = not self._previouslyKeptDice[i]
         
-        for i in range(NDICE):
+        for i in range(self._NDICE):
             if diceToRoll[i] == True:
                 diceVals[i] = random.randint(1,6)
                 logging.info(f"rolling die {i} value is {diceVals[i]}")
@@ -158,8 +157,8 @@ class FarkleBots:
     # _previouslyKeptDice have already been scored, so score the rest of the dice
     # Return the score
     def bank_score(self) -> int:
-        diceToScore = [True for x in range(NDICE)]
-        for i in range(NDICE):
+        diceToScore = [True for x in range(self._NDICE)]
+        for i in range(self._NDICE):
             diceToScore[i] = not self._previouslyKeptDice[i]
         score, numDiceThatScored, scoringDice = self.score_dice(self._keptDiceVals,diceToScore)
 
@@ -173,34 +172,35 @@ class FarkleBots:
         logging.info(f"bot1_policy called with diceVals {diceVals} previouslyKeptDice {previouslyKeptDice} starting turnScore {turnScore}")
         
         bank = True
-        diceToKeep = [False for x in range(NDICE)]
-        diceToPickFrom = [False for x in range(NDICE)]
-        for i in range(NDICE):
-            diceToPickFrom[i] = not self._previouslyKeptDice[i]
-        numDiceUsed = sum(diceToPickFrom)
+        ndice = len(diceVals)
+        diceToKeep = [False for x in range(ndice)]
+        diceToPickFrom = [False for x in range(ndice)]
+        for i in range(ndice):
+            diceToPickFrom[i] = not previouslyKeptDice[i]
+        numDiceToUse = sum(diceToPickFrom)
         score, numDiceThatScored, scoringDice = self.score_dice(diceVals,diceToPickFrom)
         
         # If all NDICE dice have scored and you are < 3000 keep rolling otherwise stop/bank
-        if scoringDice == numDiceUsed:
+        if numDiceThatScored == numDiceToUse:
             if turnScore + score < 3000:
                 logging.info(f"bot1_policy all dice scored, rolling all dice, total score {turnScore + score} scoringDice {scoringDice}")
                 bank = False
-                diceToKeep = diceToPickFrom
+                diceToKeep = scoringDice
             else:
                 logging.info(f"bot1_policy all dice scored, stopping, total score {turnScore + score} scoringDice {scoringDice}")
                 bank = True
-                diceToKeep = diceToPickFrom
+                diceToKeep = scoringDice
         # If not all dice have scored, stop if >= 400
         elif turnScore + score >= 400:
             logging.info(f"bot1_policy greater than or equal to 400, stopping, total score {turnScore + score} scoringDice {scoringDice}")
             bank = True
-            diceToKeep = diceToPickFrom
+            diceToKeep = scoringDice
         # Keep the first 1 or 5 and roll the rest of the dice
         else:
             found1 = -1
             found5 = -1
             i = 0
-            while i < NDICE and found1 == -1:
+            while i < ndice and found1 == -1:
                 if diceToPickFrom[i]:
                     if diceVals[i] == 1:
                         found1 = i
@@ -223,7 +223,7 @@ class FarkleBots:
     # Determine whether to stop rolling and bank points or
     # to continue rolling the dice including which dice to keep
     # Return bank (True) or roll (False) and list of which dice to keep# example call:
-    #       bank, diceToKeep = game.bot2_policy(diceVals,keptDice, turnscore)
+    #       bank, diceToKeep = game.bot2_policy(diceVals,keptDice,turnScore)
     def bot2_policy(self,diceVals,previouslyKeptDice,turnScore) -> Tuple[bool,list]:
         logging.info(f"bot2_policy called with diceVals {diceVals} previouslyKeptDice {previouslyKeptDice} starting turnScore {turnScore}")
         
@@ -283,8 +283,8 @@ class FarkleBots:
         farkled = score == 0
         if farkled == True:
             logging.info(f"You Farkled on your first roll!!")
-            # Sleep for 3 seconds to give time for browser get_game_state to update
-            sleep(3)
+            # Sleep for 3 seconds to give time for player to see that he Farkled
+            #sleep(3)
         
         while farkled == False and banked == False:
             banked,keptDice = self.bot_policy(whichPolicy,diceVals,previouslyKeptDice,turnScore)
@@ -311,9 +311,6 @@ class FarkleBots:
                 score = self.bank_score()
                 turnScore += score
                 self.clear_previouslyKeptDice()  # clear class variable
-
-            # Sleep for 3 seconds to give time for browser get_game_state to update
-            sleep(3)
 
         if farkled == True:
             turnScore = 0
