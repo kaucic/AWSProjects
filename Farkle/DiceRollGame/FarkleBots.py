@@ -42,12 +42,15 @@ class FarkleBots:
         return self._previouslyKeptDice
 
     # Method to compute the Farkle score pertaining to the binary vector diceToScore with spots in diceVals
-    # Return the score and the dice that scored
-    # TODO: complete and fix the scoring and return the dice that scored instead of the number of dice used     
-    def score_dice(self, diceVals, diceToScore) -> Tuple[int,list]:
+    # Return the score, the # of dice that scored, and the dice that scored bool list   
+    def score_dice(self, diceVals, diceToScore) -> Tuple[int,int,list]:
         count = 0
-        diceThatScored = 0
+        num_dice_that_scored = 0
+        dice_that_scored = [False for x in range(len(diceVals))]
+
+        # vals is a histogram of die number buckets (1-6) and the number of dice with that die number
         vals = {}
+        
         # Populate hash table
         for i in range(len(diceVals)):
             if diceToScore[i] == True:
@@ -60,50 +63,78 @@ class FarkleBots:
         # Check for a straight
         num_pairs = 0
         num_triplets = 0
+        # Check for a straight
         if 1 in vals and 2 in vals and 3 in vals and 4 in vals and 5 in vals and 6 in vals:
             score = 1500
-            diceThatScored = 6
+            num_dice_that_scored = 6
+            dice_that_scored = [True for x in range(len(diceVals))]
         else:
             score = 0
             if count > 2:
+                # key is the die number (1-6) and val is the number of occurances of that die value
                 for key, val in vals.items():
+                    # Check for 6 of a kind
                     if val == 6:
                         score = 3000
-                        diceThatScored = 6
+                        num_dice_that_scored = 6
+                        for i, use in enumerate(diceToScore):
+                            if use and diceVals[i] == key:
+                                dice_that_scored[i] = True
+                    # Check for 5 of a kind
                     if val == 5:
                         score = 2000
-                        diceThatScored = 5
+                        num_dice_that_scored = 5
+                        for i, use in enumerate(diceToScore):
+                            if use and diceVals[i] == key:
+                                dice_that_scored[i] = True
+                    # Check for 4 of a kind
                     elif val == 4:
                         score = 1000
-                        diceThatScored = 4
+                        num_dice_that_scored = 4
+                        for i, use in enumerate(diceToScore):
+                            if use and diceVals[i] == key:
+                                dice_that_scored[i] = True
+                    # Check for 3 of a kind (triplets)
                     elif val == 3:
                         num_triplets += 1
-                        score = 100 * key
                         if key == 1:
                             score = 300
-                        diceThatScored += 3
+                        else:
+                            score = 100 * key
+                        num_dice_that_scored += 3
+                        for i, use in enumerate(diceToScore):
+                            if use and diceVals[i] == key:
+                                dice_that_scored[i] = True
+                    # Check for 2 of a kind (pairs)
                     elif val == 2:
                         num_pairs += 1
 
+            # Find the ones
             if 1 in vals:
                 if vals[1] < 3:
                     score += vals[1] * 100
-                    diceThatScored += vals[1]
+                    num_dice_that_scored += vals[1]
+            # Find the fives
             if 5 in vals:
                 if vals[5] < 3:
                     score += vals[5] * 50
-                    diceThatScored += vals[5]
+                    num_dice_that_scored += vals[5]
+            # Mark the ones and fives that scored
+            for i, use in enumerate(diceToScore):
+                if use and ((diceVals[i] == 1) or (diceVals[i] == 5)):
+                    dice_that_scored[i] = True
 
         # Fix score for Three pairs and Two triplets
         if num_triplets == 2:
             score = 2500
-            diceThatScored = 6
         elif num_pairs == 3:
             score = 1500
-            diceThatScored = 6
+            num_dice_that_scored = 6
+            dice_that_scored = [True for x in range(len(diceVals))]
         
-        logging.info(f"score_dice score {score} for diceToScore {diceToScore} diceThatScored {diceThatScored}")
-        return score, diceThatScored
+        logging.info(f"score_dice score {score} for diceToScore {diceToScore} num_dice_that_scored {num_dice_that_scored} dice_that_scored {dice_that_scored}")
+
+        return score, num_dice_that_scored, dice_that_scored
 
     # Roll the dice that aren't _previouslyKeptDice
     # Get the dice values from the dice that weren't rolled from the class variable _keptDiceVals
@@ -130,9 +161,9 @@ class FarkleBots:
         diceToScore = [True for x in range(NDICE)]
         for i in range(NDICE):
             diceToScore[i] = not self._previouslyKeptDice[i]
-        score, scoringDice = self.score_dice(self._keptDiceVals,diceToScore)
+        score, numDiceThatScored, scoringDice = self.score_dice(self._keptDiceVals,diceToScore)
 
-        logging.info(f"bank_score extra points that were banked {score} count is {scoringDice}")
+        logging.info(f"bank_score extra points that were banked {score} numDiceThatScored is {numDiceThatScored} scoringDice {scoringDice}")
         return score
 
     # Determine whether to stop rolling and bank points or
@@ -147,7 +178,7 @@ class FarkleBots:
         for i in range(NDICE):
             diceToPickFrom[i] = not self._previouslyKeptDice[i]
         numDiceUsed = sum(diceToPickFrom)
-        score, scoringDice = self.score_dice(diceVals,diceToPickFrom)
+        score, numDiceThatScored, scoringDice = self.score_dice(diceVals,diceToPickFrom)
         
         # If all NDICE dice have scored and you are < 3000 keep rolling otherwise stop/bank
         if scoringDice == numDiceUsed:
@@ -189,10 +220,49 @@ class FarkleBots:
         logging.info(f"bot1_policy returning bank {bank} diceToKeep {diceToKeep}")
         return bank, diceToKeep
 
+    # Determine whether to stop rolling and bank points or
+    # to continue rolling the dice including which dice to keep
+    # Return bank (True) or roll (False) and list of which dice to keep# example call:
+    #       bank, diceToKeep = game.bot2_policy(diceVals,keptDice, turnscore)
+    def bot2_policy(self,diceVals,previouslyKeptDice,turnScore) -> Tuple[bool,list]:
+        logging.info(f"bot2_policy called with diceVals {diceVals} previouslyKeptDice {previouslyKeptDice} starting turnScore {turnScore}")
+        
+        diceToPickFrom = [False for x in range(len(diceVals))]
+        for i in range(len(diceVals)):
+            diceToPickFrom[i] = not previouslyKeptDice[i]
+        
+        #The strategy is to keep all dice that scored
+        score, numDiceThatScored, diceToKeep = self.score_dice(diceVals,diceToPickFrom)
+        
+        newTurnScore = turnScore + score
+        
+        numDiceLeft = 6 - (sum(diceToKeep) + sum(previouslyKeptDice))
+        if numDiceLeft == 0:
+            numDiceLeft = 6
+        print(f"newTurnScore: {newTurnScore}")
+        print(f"numDiceLeft: {numDiceLeft}")
+
+        if numDiceLeft == 6 and newTurnScore >= 3000:
+            bank = True
+        elif numDiceLeft == 5 and newTurnScore >= 1000:
+            bank = True
+        elif numDiceLeft == 4 and newTurnScore >= 300:
+            bank = True
+        elif numDiceLeft < 4:
+            bank = True
+
+        else:  #Roll again instead of banking
+            print("Rolling again!")
+            bank = False
+
+        return bank, diceToKeep
+    
     # Select the appropriate policy to use based on whichPolicy selected
     def bot_policy(self,whichPolicy,diceVals,previouslyKeptDice,turnScore) -> Tuple[bool,list]:
         if whichPolicy == 1:
             return self.bot1_policy(diceVals,previouslyKeptDice,turnScore)
+        elif whichPolicy == 2:
+            return self.bot2_policy(diceVals,previouslyKeptDice,turnScore)
         else:
             logging.error(f"ERROR in bot_policy, whichPolicy is {whichPolicy}")
     
@@ -209,11 +279,11 @@ class FarkleBots:
 
         diceVals,previouslyKeptDice,rolledDice = self.roll_dice()
         self.set_keptDiceVals(diceVals)  # update class variable
-        score,diceThatScored = self.score_dice(diceVals,rolledDice)
+        score, numDiceThatScored, scoringDice = self.score_dice(diceVals,rolledDice)
         farkled = score == 0
         if farkled == True:
             logging.info(f"You Farkled on your first roll!!")
-            # Sleep for 3 seconds to give time for browswer get_game_state to update
+            # Sleep for 3 seconds to give time for browser get_game_state to update
             sleep(3)
         
         while farkled == False and banked == False:
@@ -221,7 +291,7 @@ class FarkleBots:
    
             if banked == False:
                 # Determine how many points the selected dice are worth
-                score,diceThatScored = self.score_dice(diceVals,keptDice)
+                score, numDiceThatScored, scoringDice = self.score_dice(diceVals,keptDice)
                 turnScore += score
                 logging.info(f"bot_do_turn You got {score} points for keeping {keptDice} turnScore {turnScore}")
                 
@@ -235,7 +305,7 @@ class FarkleBots:
                 diceVals,previouslyKeptDice,rolledDice = self.roll_dice()
                 self.set_keptDiceVals(diceVals)  # update class variable
                 # check for Farkle for the dice that were rolled
-                score,diceThatScored = self.score_dice(diceVals,rolledDice)
+                score, numDiceThatScored, scoringDice = self.score_dice(diceVals,rolledDice)
                 farkled = score == 0
             else:
                 score = self.bank_score()
@@ -258,10 +328,11 @@ if __name__ == "__main__":
     doFlaskLogging.set_up_logger()
     inst = FarkleBots()
     dice = [6, 5, 1, 5, 5, 5]
-    keptDice = [True, True, False, True, True, True]
-    score, scoringDice = inst.score_dice(dice,keptDice)
-    logging.info(f"dice are {dice} keptDice are {keptDice} score is {score} count is {scoringDice}")
+    keptDice = [True, True, False, True, False, True]
+    score, numDiceThatScored, scoringDice = inst.score_dice(dice,keptDice)
+    logging.info(f"dice are {dice} keptDice are {keptDice} score is {score} numDiceThatScored is {numDiceThatScored} scoringDice is {scoringDice}")
+    # Answer should be 500 points using 3 dice with scoringDice[False, True, False, True, False, True]
     
-    botScore = inst.bot_do_turn()
+    botScore = inst.bot_do_turn(2)
     logging.info(f"bot scored {botScore} points")
     doFlaskLogging.clean_up_logger()

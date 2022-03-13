@@ -1,7 +1,7 @@
-Note: gameID and player are server global variables for the current game and current/active player
-gameID and playerID are client global variables
+Note: gameID and player are Server global variables for the current game and current/active player
+gameID and playerID are Client global variables
 
-rollDice/roll_dice
+1. rollDice/roll_dice
 
 In: gameID, playerID, keptDice
 Out: gameID, valid, player, Farkled, diceVals, previouslyKeptDice, turnScore
@@ -18,6 +18,17 @@ State global variables: gameID, NPlayers, player, turnScore, totals, previouslyK
 3. getGameState/get_game_state
 
 In: gameID
-Out: State global variables
+Out: State-global-variables
 
 State global variables: gameID, NPlayers, playerNames, player, turnScore, totals, previouslyKeptDice, diceVals
+
+4. doBotPolicy/do_bot_policy
+
+In: gameID, diceVals, previouslyKeptDice, turnScore, whichPolicy 
+Out: gameID, banked, diceToKeep
+
+Flow of Bot Code
+1. Within UpdateGameState (farkle-flask-comms.py) calls "doOneBotStep" (play-farkle.js)
+2. doOneBotStep (play-farkle.js) calls rollDice (farkle-flask-comms.py) or doBotPolicy (farkle-flask-comms.py)
+3. doBotPolicy (farkle-flask-comms.py) calls Python Server then implementPolicy (play-farkle.jx)
+4 implementPolicy (play-farkle.js) calls rollDice (farkle-flask-comms.py) or bankScore (farkle-flask-comms.py)
