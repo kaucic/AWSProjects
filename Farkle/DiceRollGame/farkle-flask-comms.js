@@ -124,8 +124,7 @@ function doBotPolicy(gameStateDict) {
     console.log('In doBotPolicy prevKeptDice ', prevKeptDice);
 
     // For HTTP POST, Put params in body   
-    let raw = {'gameID' : gameID, 'diceVals' : diceVals, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score};
-    raw['whichPolicy'] = playerID;
+    let raw = {'gameID' : gameID, 'diceVals' : diceVals, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score, 'whichPolicy' : playerID};
 
     // Make this a blocking call           
     let botPolicyDict = serverCall('post',botPolicyAPI,raw).then(implementPolicy);

@@ -36,8 +36,8 @@ def init():
 
     gameID += 1
     NPlayers = 2
-    playerNames[1] = 'Bob'
-    playerNames[2] = 'Bot'
+    playerNames[1] = 'Bot1'
+    playerNames[2] = 'Bot2'
     player = 1 # Global variable representing whose turn it is.  Will be replaced with a game_setup API
     game = FarkleBots()
     rolledOnceOrMore = False # Global variable to identify a player's first roll
@@ -101,7 +101,7 @@ def roll_dice():
     # Check to see if it is the calling clients turn
     if playerID == player:
         if rolledOnceOrMore == False:
-            previouslyKeptDice = game.clear_previouslyKeptDice();
+            previouslyKeptDice = game.clear_previouslyKeptDice()
             turnScore = 0
         # Score the dice that were kept
         elif any(keptDice):
@@ -141,7 +141,7 @@ def roll_dice():
             
         # Check for Farkle
         score, numDiceThatScored, scoringDice = game.score_dice(diceVals,rolledDice)
-        logging.info(f"Checking for Farkle: score is {score} numDiceThatScored is {numDiceThatScored}")
+        #logging.info(f"Checking for Farkle: score is {score} numDiceThatScored is {numDiceThatScored}")
         if score > 0:
             body['Farkled'] = False
         else: # Farkled, zero out turn score and pass dice to next player 
@@ -233,47 +233,9 @@ def bank_score():
     
     return jsonify(bankResponse)
 
-@application.route('/do_bot_policy', methods=['POST'])
-def do_bot_policy():
-    global gameID, game
-    
-    # Test code to try out the bot
-    #logging.info("do_bot_policy calling bot_do_turn")
-    #foo = game.bot_do_turn()
-    #logging.info("init returned from bot_do_turn")
-    #sleep(00)
-
-    logging.info(f"do_bot_policy POST called")
-    data = request.get_json()
-    logging.info(f"do_bot_policy POST received json {data}")
-    gID = data['gameID']
-    diceVals = data['diceVals']
-    previouslyKeptDice = data['previouslyKeptDice']
-    score = data['turnScore']
-
-    if 'whichPolicy' in data:
-        whichPolicy = data['whichPolicy']
-    else:
-        whichPolicy = 1
-    logging.info(f"do_bot_policy entered with diceVals {diceVals} previouslyKeptDice {previouslyKeptDice} turnScore {score} and whichPolicy {whichPolicy}")    
-
-    if whichPolicy == 1:
-        bank, diceToKeep = game.bot1_policy(diceVals,previouslyKeptDice,score)
-    else:
-        bank, diceToKeep = game.bot2_policy(diceVals,previouslyKeptDice,score)
-    
-    body = {'gameID' : gID}
-    body['banked'] = bank
-    body['diceToKeep'] = diceToKeep
-    
-    statusCode = 200
-    botPolicyResponse = {'body' : body, 'statusCode': statusCode}
-    
-    return jsonify(botPolicyResponse)
-
 @application.route('/get_game_state', methods=['GET'])
 def get_game_state():
-    global gameID, NPlayers, playerNames, player, game, rolledOnceOrMore, turnScore, totals
+    #global gameID, NPlayers, playerNames, player, game, rolledOnceOrMore, turnScore, totals
     errMsg = ""
 
     # For GET invocations
@@ -296,6 +258,35 @@ def get_game_state():
     
     return jsonify(gameStateResponse)
 
+@application.route('/do_bot_policy', methods=['POST'])
+def do_bot_policy():
+    global gameID
+    
+    logging.info(f"do_bot_policy POST called")
+    data = request.get_json()
+    logging.info(f"do_bot_policy POST received json {data}")
+    gID = data['gameID']
+    diceVals = data['diceVals']
+    previouslyKeptDice = data['previouslyKeptDice']
+    score = data['turnScore']
+
+    if 'whichPolicy' in data:
+        whichPolicy = data['whichPolicy']
+    else:
+        whichPolicy = 1
+    logging.info(f"do_bot_policy entered with diceVals {diceVals} previouslyKeptDice {previouslyKeptDice} turnScore {score} and whichPolicy {whichPolicy}")    
+
+    bank, diceToKeep = game.bot_policy(whichPolicy,diceVals,previouslyKeptDice,score)
+    
+    body = {'gameID' : gID}
+    body['banked'] = bank
+    body['diceToKeep'] = diceToKeep
+    
+    statusCode = 200
+    botPolicyResponse = {'body' : body, 'statusCode': statusCode}
+    
+    return jsonify(botPolicyResponse)
+    
 if __name__ == "__main__":
     # Flask defaults to localhost:5000
     # nginx defaults to port 8000
