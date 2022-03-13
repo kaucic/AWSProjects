@@ -327,9 +327,12 @@ if __name__ == "__main__":
     dice = [6, 5, 1, 5, 5, 5]
     keptDice = [True, True, False, True, False, True]
     score, numDiceThatScored, scoringDice = inst.score_dice(dice,keptDice)
-    logging.info(f"dice are {dice} keptDice are {keptDice} score is {score} numDiceThatScored is {numDiceThatScored} scoringDice is {scoringDice}")
+    logging.info(f"dice are {dice} keptDice are {keptDice} score is {score} numDiceThatScored is {numDiceThatScored} scoringDice are {scoringDice}")
     # Answer should be 500 points using 3 dice with scoringDice[False, True, False, True, False, True]
     
+    botScore = inst.bot_do_turn(1)
+    logging.info(f"bot1 scored {botScore} points")
+
     botScore = inst.bot_do_turn(2)
-    logging.info(f"bot scored {botScore} points")
+    logging.info(f"bot2 scored {botScore} points")
     doFlaskLogging.clean_up_logger()

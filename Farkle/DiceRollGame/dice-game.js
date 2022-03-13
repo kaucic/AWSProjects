@@ -68,7 +68,7 @@ function getCheckboxValues() {
 }
 
 // Function to parse dice json returned from server and update the HTML
-// Input is Java Script object return from back end
+// Input is the body of the Java Script object returned from the server
 function updateRoll(dice) {
     let b = dice;
     let gID = b.gameID;
@@ -109,7 +109,7 @@ function updateRoll(dice) {
 }
 
 // Function to parse json returned after a player completes their turn and update the HTML
-// the input json is just the body of what was returned by the server
+// Input is the body of the Java Script object returned from the server
 function updateTurn(turn) {
     var b = turn;
     let gID = b.gameID;
@@ -140,6 +140,7 @@ function updateTurn(turn) {
 }
 
 // Function to parse json returned after a change in the game state and update the HTML
+// Input is the body of the Java Script object returned from the server
 function updateGameState(state) {
     var b = state;
     let gID = b.gameID;
