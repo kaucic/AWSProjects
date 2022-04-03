@@ -59,7 +59,6 @@ class FarkleBots:
                 else:
                     vals[diceVals[i]] = 1
         
-        # Check for a straight
         num_pairs = 0
         num_triplets = 0
         # Check for a straight
@@ -134,6 +133,11 @@ class FarkleBots:
         logging.info(f"score_dice score {score} for diceToScore {diceToScore} num_dice_that_scored {num_dice_that_scored} dice_that_scored {dice_that_scored}")
 
         return score, num_dice_that_scored, dice_that_scored
+
+    # Method to determine all subset of dice combinations that score points pertaining to the binary vector diceToScore with spots in diceVals
+    # Return lists of the scores, the # of dice that scored, and the dice that scored bool list for those dice for 1 to N dice kept   
+    def get_scoring_possibilities(self, diceVals, diceToScore) -> Tuple[list,list,list]:
+        return
 
     # Roll the dice that aren't _previouslyKeptDice
     # Get the dice values from the dice that weren't rolled from the class variable _keptDiceVals

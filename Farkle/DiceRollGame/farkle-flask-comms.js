@@ -46,13 +46,13 @@ async function getGameState() {
     console.log('getGameState returned player is ', gameStateDict.player, " XXX");
    
     // check to see if it is the bots turn and if so, do one step in a bot turn
-    //if (gameStateDict.player == 2) {
-    if (true) {
+    if (gameStateDict.player == 2) {
+    //if (true) {
         doOneBotStep(gameStateDict);
     }     
     setTimeout(function () {
         getGameState();
-    }, 2000);
+    }, 5000);
 }
 
 // Initialize the game for two people to play using one browswer
@@ -124,7 +124,7 @@ function doBotPolicy(gameStateDict) {
     console.log('In doBotPolicy prevKeptDice ', prevKeptDice);
 
     // For HTTP POST, Put params in body   
-    let raw = {'gameID' : gameID, 'diceVals' : diceVals, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score, 'whichPolicy' : playerID};
+    let raw = {'diceVals' : diceVals, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score, 'whichPolicy' : playerID};
 
     // Make this a blocking call           
     let botPolicyDict = serverCall('post',botPolicyAPI,raw).then(implementPolicy);

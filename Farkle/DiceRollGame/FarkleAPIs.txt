@@ -21,9 +21,9 @@ State global variables used: gameID, NPlayers, playerNames, player, rolledOnceOr
 
 4. doBotPolicy/do_bot_policy
 
-In: gameID, diceVals, previouslyKeptDice, turnScore, whichPolicy 
-Out: gameID, banked, diceToKeep
-State global variables used: gameID
+In: diceVals, previouslyKeptDice, turnScore, whichPolicy 
+Out: banked, diceToKeep
+State global variables used: 
 
 Flow of Bot Code
 1. Within UpdateGameState (farkle-flask-comms.py) calls "doOneBotStep" (play-farkle.js)

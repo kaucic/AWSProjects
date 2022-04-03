@@ -263,12 +263,10 @@ def get_game_state():
 
 @application.route('/do_bot_policy', methods=['POST'])
 def do_bot_policy():
-    global gameID
-    
     #logging.info(f"do_bot_policy POST called")
     data = request.get_json()
     logging.info(f"do_bot_policy POST received json {data}")
-    gID = data['gameID']
+
     diceVals = data['diceVals']
     previouslyKeptDice = data['previouslyKeptDice']
     score = data['turnScore']
@@ -282,9 +280,7 @@ def do_bot_policy():
 
     bank, diceToKeep = game.bot_policy(whichPolicy,diceVals,previouslyKeptDice,score)
     
-    body = {'gameID' : gID}
-    body['banked'] = bank
-    body['diceToKeep'] = diceToKeep
+    body = {'banked' : bank, 'diceToKeep' : diceToKeep}
     
     statusCode = 200
     botPolicyResponse = {'body' : body, 'statusCode': statusCode}
