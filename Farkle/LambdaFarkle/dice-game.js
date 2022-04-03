@@ -1,7 +1,7 @@
 // Initialize game
 var NDICE = 6;
 var NPlayers = 2;
-var game_id = "test_game";
+var gameID = "test_game";
 var playerID = 1;
 
 // Note: Index 0 is not used and is a special case representing a tie
@@ -9,7 +9,6 @@ var playerNames = Array(NPlayers+1);
 playerNames[1] = "Player 1";
 playerNames[2] = "Player 2";
 previouslyKeptDice = Array(NDICE).fill(false);
-
 
 // Update the HTML DOM to broadcast message
 function updateMessage(msg) {
@@ -72,8 +71,8 @@ function getCheckboxValues() {
 // Function to parse dice json returned from server and update the HTML
 function updateRoll(dice) {
     let b = dice;
-    console.log('b :  ', b);
-    let gID = b.game_id;
+    console.log('updateRoll dice :  ', b);
+    let gID = b.gameID;
     let valid = b.valid;
     console.log('updateRoll validity is ', valid);
 
@@ -110,7 +109,7 @@ function updateRoll(dice) {
 // Function to parse json returned after a player completes their turn and update the HTML
 function updateTurn(turn) {
     var b = turn;
-    let gID = b.game_id;
+    let gID = b.gameID;
     let valid = b.valid;
     console.log('updateTurn validity is ', valid);
 
@@ -139,7 +138,7 @@ function updateTurn(turn) {
 function updateGameState(state) {
     console.log('in upateGateSate State: ', state);
     var b = state;
-    let gID = b.game_id;
+    let gID = b.gameID;
     playerID = b.player; // Global variable, will be removed when game logins work
     let player = b.player;
     console.log('State Update returned Player number ', player);
