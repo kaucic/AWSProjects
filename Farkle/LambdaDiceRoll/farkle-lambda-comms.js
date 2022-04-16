@@ -6,16 +6,24 @@ async function lambdaCall(lambdaBody) {
     var requestOptions = {
         method: 'POST',
         headers: myHeaders,
-        body: lambdaBody,
+        body: JSON.stringify(lambdaBody),
         redirect: 'follow'
     };
 
     // make API call with parameters and use promises to get response
-	
-    let response = await fetch("https://gfkcm1eej6.execute-api.us-west-2.amazonaws.com/dev", requestOptions);
-    let result = await response.json();
-    console.log("await fetch: ", result.body);
-    mybody = result.body;
+    let jsObject = await fetch("https://gfkcm1eej6.execute-api.us-west-2.amazonaws.com/dev", requestOptions)
+    .then(function (response) { 
+        console.log('lambdaCall: Return status ', response.status); // 200
+        console.log(response.statusText); // OK
+        return response.json();  // parses JSON response into native JavaScript objects
+    })
+    .catch(function(error) {
+        console.log('ERROR in serverCall fetch ', error);
+    })
+
+    console.log('lambdaCall: jsObject ', jsObject)
+    mybody = jsObject.body;
+    console.log('lambdaCall: mybody ', mybody)
 
     return mybody;
 }
@@ -24,7 +32,7 @@ async function lambdaCall(lambdaBody) {
 function initGame(){
     console.log("Initing game");
     // create a JSON object with parameters for API call and store in a variable
-    var lambdaBody = JSON.stringify({"action":"init_game"});
+    var lambdaBody = {"action":"init_game"};
     var lResult;
     var plResult;
 	//  Make this a blocking call!!!!!!!
@@ -49,7 +57,7 @@ function initGame(){
             keptDice[i] = false;
         }
     }
-      var lambdaBody = JSON.stringify({"action":"roll_dice", "playerID":playerID, "gameID": gameID, "keptDice": keep});
+      var lambdaBody = {"action":"roll_dice", "playerID":playerID, "gameID": gameID, "keptDice": keep};
       lambdaCall(lambdaBody)
 	    .then(updateRoll);
   }
@@ -58,7 +66,7 @@ function initGame(){
 // Long Poll the server every two second to get the game state
 async function getGameState(){
   // create a JSON object with parameters for API call and store in a variable
-  var lambdaBody = JSON.stringify({"action":"get_game_state", "gameID": gameID});
+  var lambdaBody = {"action":"get_game_state", "gameID": gameID};
   console.log("getGameState lambdabody:" + lambdaBody);
   var lResult;
   var plResult;
@@ -76,13 +84,13 @@ async function getGameState(){
  
   setTimeout(function (){
       getGameState();
-  }, 5000);
+  }, 30000);
 }
 
 // Call the Server to end players turn and bank score
 function bankScore(){
   // create a JSON object with parameters for API call and store in a variable
-  var lambdaBody = JSON.stringify({"action":"bank", "playerID":playerID, "gameID": gameID});
+  var lambdaBody = {"action":"bank", "playerID":playerID, "gameID": gameID};
   console.log("bankscore lambdabody:" + lambdaBody);
   var lResult;
   var plResult;
@@ -101,7 +109,7 @@ function doBotPolicy(gameStateDict) {
   console.log('In doBotPolicy prevKeptDice ', prevKeptDice);
 
    // create a JSON object with parameters for API call and store in a variable
-   var lambdaBody = JSON.stringify({"action":"do_bot_policy", 'diceVals' : diceVals, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score, 'whichPolicy' : playerID});
+   var lambdaBody = {"action":"do_bot_policy", 'diceVals' : diceVals, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score, 'whichPolicy' : playerID};
    console.log("bankscore lambdabody:" + lambdaBody);
    
    lambdaCall(lambdaBody)
