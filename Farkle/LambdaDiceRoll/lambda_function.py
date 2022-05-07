@@ -6,21 +6,26 @@ import random
 import logging
 
 from Farkle import Farkle
+from FarkleFuncs import FarkleFuncs
 
 
 # create a DynamoDB object using the AWS SDK
 dynamodb = boto3.resource('dynamodb')
 
 # use the DynamoDB object to select our table
-table = dynamodb.Table('farkle_game_state')
+#table = dynamodb.Table('farkle_game_state')
+table = dynamodb.Table('Farkle_Game_State_V2')
 
-game_id = 'test_game'
+
+gameID = 'test_game'
+diceObj = FarkleFuncs() # Global Dice variable that contains variables _previouslyKeptDice and _keptDiceVals
 NDICE = 6
 NPlayers = 2
 # Note: Index 0 is not used, so Player 1 is index 1
 player = 1
 previouslyKeptDice = [False for x in range(NDICE)]
 diceVals = [1 for x in range(NDICE)]
+rolledOnceOrMore = False
 turnScore = 0
 totals = [0 for x in range(NPlayers+1)]
 playerNames = ['nobody' for x in range(NPlayers+1)]
@@ -31,7 +36,7 @@ game = Farkle()
 def lambda_handler(event, context):
     
 
-    global game_id, NDICE, NPlayers, playerNames, player, diceVals, previouslyKeptDice, turnScore, totals
+    global gameID, NDICE, NPlayers, playerNames, player, diceVals, previouslyKeptDice, turnScore, totals, rolledOnceOrMore
     
     action = event.get('action','none')
 
@@ -58,7 +63,7 @@ def lambda_handler(event, context):
         print("rolling dice")
         response = table.get_item(
             Key={
-                'game_id': game_id 
+                'gameID': gameID 
             }
         )
         rollState = response.get('Item','none')
@@ -73,12 +78,13 @@ def lambda_handler(event, context):
         turnScore = rollState['turnScore']
         totals = rollState['totals']
         playerNames = rollState['playerNames']
-
+        rolledOnceOrMore = rollState['rolledOnceOrMore']
         
+        print(f"rOOM before roll_dice: {rolledOnceOrMore}")
         roll_response = roll_dice(event)
 
         if roll_response['valid']:
-            # write new gamestate back to game_id key
+            # write new gamestate back to gameID key
             response = table.put_item(
               Item = roll_response
             )
@@ -93,7 +99,7 @@ def lambda_handler(event, context):
         print("banking")
         response = table.get_item(
             Key={
-                'game_id': game_id
+                'gameID': gameID
             }
         )
         gameState = response.get('Item','none')
@@ -103,18 +109,20 @@ def lambda_handler(event, context):
             # do some error or init thing
         
         #Copy gamestate params into global vars
-        player = int(gameState['player'])
+        player = gameState['player']
         previouslyKeptDice = gameState['previouslyKeptDice']
         diceVals = gameState['diceVals']
         turnScore = gameState['turnScore']
         totals = gameState['totals']
         playerNames = gameState['playerNames']
+        rolledOnceOrMore = gameState['rolledOnceOrMore']
+
 
         bank_response = bank_score(event)
         print(f"bank_response: {bank_response}")
 
 
-        # write new gamestate back to game_id key
+        # write new gamestate back to gameID key
         if bank_response['valid']:
             response = table.put_item(
               Item = bank_response
@@ -130,11 +138,12 @@ def lambda_handler(event, context):
         print("getting gameState")
         response = table.get_item(
             Key={
-                'game_id': game_id
+                'gameID': gameID
             }
         )
-        gamestate = response.get('Item','none')
-        if GameState == 'none':
+        gameState = response.get('Item','none')
+        if gameState == 'none':
+            print(f"gameID: {gameID}  not found in DDB")
             print('no gamestate')
             # do some error or init thing
         
@@ -143,12 +152,49 @@ def lambda_handler(event, context):
           'statusCode': 200,
           'body': gameState
     }
+    
+    elif action == 'do_bot_policy':
+        print("doing bot policy")
+        
+        bot_response = do_bot(event)
+        return {
+          'statusCode': 200,
+          'body': bot_response
+    }
+
+
+
+
+
+#bot Policy stuff
+#       bank, diceToKeep = game.bot1_policy(diceVals,keptDice, turnScore)
+def do_bot(input_data):
+        diceVals = input_data['diceVals']
+        keptDice = input_data['previouslyKeptDice']
+        turnScore = input_data['turnScore']
+        print(f"diceVals: {diceVals}")
+        print(f"keptDice: {keptDice}")
+        print(f"turnScore: {turnScore}")
+        if 'unitTest' in input_data:
+           print("unitTest")
+           game.bot1_policy([1,3,4,2,5,6],[False,False,False,False,False,False],0)
+           game.bot1_policy([1,3,4,2,5,6],[True,False,False,False,False,False],0)
+
+
+        bank, diceToKeep = game.bot1_policy(diceVals, keptDice, turnScore)
+
+        body = {'banked' : bank,
+            'diceToKeep' : diceToKeep}
+        print(f"bot policy return body: {body}")
+
+        return body
 
 def init_game():
-    print("init GET called")
 
-    global game_id, NDICE, NPlayers, playerNames, player, diceVals, previouslyKeptDice, turnScore, totals
-    #game_id += 1
+    print("init_ga called")
+
+    global gameID, NDICE, NPlayers, playerNames, player, diceVals, previouslyKeptDice, turnScore, totals
+    #gameID += 1
     player = 1
     previouslyKeptDice = [False for x in range(NDICE)]
     diceVals = [1 for x in range(NDICE)]
@@ -157,10 +203,11 @@ def init_game():
     playerNames[1] = 'Bob'
     playerNames[2] = 'Ron'
 
-    body = {'game_id' : game_id,
+    body = {'gameID' : gameID,
             'playerNames' : playerNames,
             'player' : player,
             'totals' : totals, 
+            'rolledOnceOrMore' : False,
             'turnScore' : turnScore,
             'diceVals' : diceVals,
             'valid' : 'true',
@@ -170,138 +217,141 @@ def init_game():
 
 
 def roll_dice(input_data):
-    global game, NDICE, NPlayers, player, previouslyKeptDice, diceVals, turnScore, totals
-    
 
-    gID = input_data['game_id']
+
+    global game, NDICE, NPlayers, player, previouslyKeptDice, diceVals, rolledOnceOrMore, diceObj, turnScore, totals
+    print(f"input_data: {input_data}")
+
+    print(f"rolledOnceOrMore: {rolledOnceOrMore}")
+
+    
+    #logging.info(f"roll_dice POST called")
+    gID = input_data['gameID']
+    body = {'gameID' : gID}
     playerID = int(input_data['playerID'])
     keptDice = input_data['keptDice']
-    print(f"[playerID is {playerID} keptDice is {keptDice}")
+    logging.info(f"roll_dice gameID {gID} playerID {playerID} keptDice {keptDice}")
     
-
+  
     # Check to see if it is the calling clients turn
     if playerID == player:
+        # If the player hasn't yet rolled, clear everything and start turn
+        #print(f"rolledOnceOrMore: {rolledOnceOrMore}")
+
+        if rolledOnceOrMore == False:
+            previouslyKeptDice = diceObj.clear_previouslyKeptDice()
+            turnScore = 0
         # Score the dice that were kept
-        if any(keptDice):
-            score, scoringDice = game.score_dice(diceVals,keptDice)
-            print(f"Scoring the dice that were kept: score is {score} count is {scoringDice}")
-            turnScore += score
-        # if no dice were kept then it must be the first roll of the turn
+        elif any(keptDice):
+            diceVals = diceObj.get_keptDiceVals()
+            score, numDiceThatScored, scoringDice = FarkleFuncs.score_dice(diceVals,keptDice)
+            # Error Check to ensure that the player only kept dice that scored
+            numDiceKept = sum(keptDice)
+            if numDiceKept > numDiceThatScored:
+                errMsg = f"ERROR in roll_dice, playerID {playerID} kept dice that didn't score"
+                logging.error(errMsg)
+                body = {'gameID' : gID, 'valid' : False, 'errMsg' : errMsg}
+                return body
+            else:
+                previouslyKeptDice = diceObj.update_previouslyKeptDice(keptDice)
+                logging.info(f"Scoring the dice that were kept: score {score} numDiceThatScored {numDiceThatScored} scoringDice {scoringDice}")
+                turnScore += score
+                
+                # If all dice have scored, clear previouslyKeptDice and roll all dice
+                if all(previouslyKeptDice):
+                    previousKeptDice = diceObj.clear_previouslyKeptDice()  # clear class variable
+        # Error the player did not keep any dice
         else:
-            turnScore = 0
-
-        # Determine which dice to roll
-        diceToRoll = [True for x in range(NDICE)]
-        for i in range(NDICE):
-            diceToRoll[i] = not (previouslyKeptDice[i] or keptDice[i])
-        # If all dice have scored, clear flags and roll all dice
-        if not any(diceToRoll):
-            keptDice = [False for x in range(NDICE)]
-            previouslyKeptDice = [False for x in range(NDICE)]
-            diceToRoll = [True for x in range(NDICE)]
-
-        for i in range(NDICE):
-            if diceToRoll[i] == True:
-                diceVals[i] = random.randint(1,6)
-                print(f"rolling die {i} value is {diceVals[i]}")
-            
-        body = { 'game_id' : gID, 'valid' : True, 'diceVals' : diceVals}
-            
+            errMsg = f"ERROR in roll_dice, playerID {playerID} did not keep any dice"
+            logging.error(errMsg)
+            body = {'gameID' : gID, 'valid' : False, 'errMsg' : errMsg}
+            return body
+                
+        diceVals,previouslyKeptDice,rolledDice = diceObj.roll_dice()
+        rolledOnceOrMore = True
+        diceObj.set_keptDiceVals(diceVals)  # update class variable
+                          
         # Check for Farkle
-        score, scoringDice = game.score_dice(diceVals, diceToRoll)
-        print(f"Checking for Farkle: score is {score} count is {scoringDice}")
+        score, numDiceThatScored, scoringDice = diceObj.score_dice(diceVals,rolledDice)
+        #logging.info(f"Checking for Farkle: score is {score} numDiceThatScored is {numDiceThatScored}")
         if score > 0:
-            body['Farkled'] = False;
-            for i in range(NDICE):
-                previouslyKeptDice[i] = previouslyKeptDice[i] or keptDice[i]
-            body['previouslyKeptDice'] = previouslyKeptDice
+            body['Farkled'] = False
         else: # Farkled, zero out turn score and pass dice to next player 
-            body['Farkled'] = True;  
+            body['Farkled'] = True  
             turnScore = 0
-            keptDice = [False for x in range(NDICE)]
-            previouslyKeptDice = [False for x in range(NDICE)]
-            player += 1
+            previouslyKeptDice = diceObj.clear_previouslyKeptDice()  # clear class variable
+            rolledOnceOrMore = False # reset global variable when the turn passes to the next player
+            player += 1 # Update global variable for whose turn it is
             if player > NPlayers:
                 player = 1
         
-        body['diceVals'] = diceVals
-        body['player'] = player
-        body['playerNames'] = playerNames
+        body['gameID'] = gID
+        body['player'] = int(player)
         body['valid'] = True
-        body['turnScore'] = turnScore
         body['totals'] = totals
+        body['turnScore'] = turnScore
+        body['previouslyKeptDice'] = previouslyKeptDice
+        body['rolledOnceOrMore'] = rolledOnceOrMore
+        body['diceVals'] = diceVals
+        body['playerNames'] = playerNames
         body['previouslyKeptDice'] = previouslyKeptDice
         print(f"roll_dice return body: {body}")
 
+
+    # Error, it is not the player's turn
     else:
-        print(f"ERROR in roll_dice, playerID is {playerID}, but current player is {player}")
-        body = {  'game_id' : gID, 'valid' : False}
+        errMsg = f"ERROR in roll_dice, playerID is {playerID}, but current player is {player}"
+        logging.error(errMsg)
+        body = {'gameID' : gID, 'valid' : False, 'errMsg' : errMsg}
+
     return body
-
+    
+    # End of roll_dice()
+    
+    
 def bank_score(input_data):
-    global game, NDICE, NPlayers, player, previouslyKeptDice, diceVals, turnScore, totals
+    global game, NDICE, NPlayers, player, previouslyKeptDice, diceVals, turnScore, totals,  diceObj, rolledOnceOrMore
+    errMsg = ""
 
-    print(f"bank_score Lambda received json {input_data}")
-    gID = input_data['game_id']
+    gID = input_data['gameID']
     playerID = int(input_data['playerID'])
     
-    print(f"Player number {playerID} has ended their turn.  Current Player number is {player}")
+    logging.info(f"Player number {playerID} has ended their turn.  Current Player number is {player}")
     
-    body = {'game_id' : gID}
+    body = {'gameID' : gID}
     # Check to see if it is the calling clients turn
-    print(f"type: {type(playerID)} playerID: {playerID}; type: {type(player)} player: {player}")
     if playerID == player:
-        # Compute player's total score
-        diceToScore = [True for x in range(NDICE)]
-        for i in range(NDICE):
-            diceToScore[i] = not previouslyKeptDice[i]
-        score, scoringDice = game.score_dice(diceVals,diceToScore)
-        print(f"Determining points that were banked: score is {score} count is {scoringDice}")
+        # Ensure that the player has rolled before banking their score
+        if rolledOnceOrMore == False:
+            errMsg = f"You must roll at least once before you bank your score"
+            body['valid'] = False
+            body['errMsg'] = errMsg
+        else:
+            # Compute player's total score
+            totals[int(player)] += turnScore + diceObj.bank_score()
+            turnScore = 0
 
-        turnScore += score
-        totals[player] += turnScore
-        turnScore = 0
+            # Next Players turn
+            player += 1
+            previouslyKeptDice = diceObj.clear_previouslyKeptDice()  # clear class variable
+            rolledOnceOrMore = False # reset global variable when the turn passes to the next player
+            if player > NPlayers:
+                player = 1
+            
+            body['valid'] = True
+            body['playerNames'] = playerNames
+            body['player'] = player
+            body['turnScore'] = turnScore
+            body['totals'] = totals
+            body['previouslyKeptDice'] = previouslyKeptDice
+            body['rolledOnceOrMore'] = False
+            body['diceVals'] = diceVals
 
-        # Next Players turn
-        player += 1
-        if player > NPlayers:
-            player = 1
 
-        # Clear all kept dice
-        previouslyKeptDice = [False for x in range(NDICE)]
         
-        body['valid'] = True
-        body['player'] = player
-        body['turnScore'] = turnScore
-        body['totals'] = totals
-        body['previouslyKeptDice'] = previouslyKeptDice
-        body['diceVals'] = diceVals
-        body['playerNames'] = playerNames
-
-
-    
     else:
+        errMsg = f"ERROR in bank_score, playerID is {playerID}, but current player is {player}"
         body['valid'] = False
+        body['errMsg'] = errMsg
 
-    statusCode = 200
-
-    #For reference: body returned from getGameState - Not quite the same as for bank_score
-    #body = { 'game_id' : gID, 'playerNames' : playerNames, 'player' : player, 'totals' : totals, 'turnScore' : turnScore, 'diceVals' : diceVals, 'previouslyKeptDice' : previouslyKeptDice }
-
-    #return json.dumps(body)
-    return (body)
-
-
-#  Is this needed?
-def get_game_state(input_data):
-    print(f"get_game_state GET called")
-    gID = input_data['game_id']
-       
-    global NDICE, NPlayers, playerNames, player, previouslyKeptDice, diceVals, turnScore, totals
-    
-    body = { 'game_id' : gID, 'playerNames' : playerNames, 'player' : player, 'totals' : totals, 'turnScore' : turnScore, 'diceVals' : diceVals, 'previouslyKeptDice' : previouslyKeptDice }
-    
-    statusCode = 200
-    gameStateResponse = {'body' : body, 'statusCode': statusCode}
-    
-    return json.dumps(gameStateResponse)
+    return body
