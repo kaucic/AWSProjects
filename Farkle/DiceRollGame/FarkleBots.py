@@ -136,7 +136,7 @@ class FarkleBots:
     # Inputs: totals is list of each player's score, totals[0] is not used
     # botIdx is index of the bot in the totals list
     # Currently the players' scores aren't used 
-    # Class variables _keptDiceVals and _previouslyKeptDice are modified during the turn
+    # Class variables _diceVals and _previouslyKeptDice are modified during the turn
     # Return the score for the turn
     def bot_do_turn(self,totals,botIdx,whichPolicy=1) -> int:
         # do roll_dice until Farkle or bank_score
@@ -149,7 +149,6 @@ class FarkleBots:
 
         # Always roll the dice to start the turn
         diceVals,previouslyKeptDice,rolledDice = diceObj.roll_dice()
-        diceObj.set_keptDiceVals(diceVals)  # update class variable
         score, numDiceThatScored, scoringDice = FarkleFuncs.score_dice(diceVals,rolledDice)
         farkled = score == 0
         if farkled == True:
@@ -174,7 +173,6 @@ class FarkleBots:
                     diceObj.clear_previouslyKeptDice()  # clear class variable
                     
                 diceVals,previouslyKeptDice,rolledDice = diceObj.roll_dice()
-                diceObj.set_keptDiceVals(diceVals)  # update class variable
                 # check for Farkle for the dice that were rolled
                 score, numDiceThatScored, scoringDice = FarkleFuncs.score_dice(diceVals,rolledDice)
                 farkled = score == 0

@@ -19,7 +19,7 @@ playerNames = ['nobody' for x in range(NPlayers+1)] # Global diceObj variable
 totals = [0 for x in range(NPlayers+1)] # Global diceObj variable indicating everyone's score
 gameID = 100 # Global ID for the game with these players
 
-diceObj = FarkleFuncs() # Global Dice variable that contains variables _previouslyKeptDice and _keptDiceVals
+diceObj = FarkleFuncs() # Global Dice variable that contains variables _previouslyKeptDice and _diceVals
 # Note: Index 0 is not used, so Player 1 is index 1
 player = 1 # Global Turn variable representing whose turn it is
 rolledOnceOrMore = False;  # Global Turn variable to indicate whether or not current player has rolled
@@ -44,7 +44,7 @@ def init():
     diceObj = FarkleFuncs()
     rolledOnceOrMore = False # Global variable to indicate whether or not current player has rolled
     previouslyKeptDice = diceObj.get_previouslyKeptDice()
-    diceVals = diceObj.get_keptDiceVals()
+    diceVals = diceObj.get_diceVals()
     turnScore = 0
     totals = [0 for x in range(NPlayers+1)]
    
@@ -109,7 +109,7 @@ def roll_dice():
             turnScore = 0
         # Score the dice that were kept
         elif any(keptDice):
-            diceVals = diceObj.get_keptDiceVals()
+            diceVals = diceObj.get_diceVals()
             score, numDiceThatScored, scoringDice = FarkleFuncs.score_dice(diceVals,keptDice)
             # Error Check to ensure that the player only kept dice that scored
             numDiceKept = sum(keptDice)
@@ -139,9 +139,8 @@ def roll_dice():
                 
         diceVals,previouslyKeptDice,rolledDice = diceObj.roll_dice()
         rolledOnceOrMore = True
-        diceObj.set_keptDiceVals(diceVals)  # update class variable
                           
-        body = { 'diceObjID' : gID, 'valid' : True, 'diceVals' : diceVals}
+        body = { 'gameID' : gID, 'valid' : True, 'diceVals' : diceVals}
             
         # Check for Farkle
         score, numDiceThatScored, scoringDice = diceObj.score_dice(diceVals,rolledDice)
@@ -253,7 +252,7 @@ def get_game_state():
         logging.error(errMsg)
        
     previouslyKeptDice = diceObj.get_previouslyKeptDice()
-    diceVals = diceObj.get_keptDiceVals()
+    diceVals = diceObj.get_diceVals()
 
     body = { 'gameID' : gID, 'playerNames' : playerNames, 'player' : player, 'totals' : totals, 'turnScore' : turnScore, 'diceVals' : diceVals, 'rolledOnceOrMore' : rolledOnceOrMore, 'previouslyKeptDice' : previouslyKeptDice}
     
@@ -272,15 +271,17 @@ def do_bot_policy():
     diceVals = data['diceVals']
     previouslyKeptDice = data['previouslyKeptDice']
     score = data['turnScore']
+    scores = data['totals']
+    playerID = data['playerID']
 
     # Check to see if the client selected a particular policy
     if 'whichPolicy' in data:
         whichPolicy = data['whichPolicy']
     else:
         whichPolicy = 1
-    logging.info(f"do_bot_policy entered with diceVals {diceVals} previouslyKeptDice {previouslyKeptDice} turnScore {score} and whichPolicy {whichPolicy}")    
+    logging.info(f"do_bot_policy entered with diceVals {diceVals} previouslyKeptDice {previouslyKeptDice} turnScore {score} totals {scores} player {playerID} and whichPolicy {whichPolicy}")    
 
-    bank, diceToKeep = FarkleBots.bot_policy(whichPolicy,diceVals,previouslyKeptDice,score,totals,player)
+    bank, diceToKeep = FarkleBots.bot_policy(whichPolicy,diceVals,previouslyKeptDice,score,scores,playerID)
     
     body = {'banked' : bank, 'diceToKeep' : diceToKeep}
     
