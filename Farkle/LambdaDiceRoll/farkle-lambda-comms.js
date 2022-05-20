@@ -77,14 +77,14 @@ async function getGameState(){
   console.log('getGameState returned player is ', gameStateDict.player, " XXX");
  
   // check to see if it is the bots turn and if so, do one step in a bot turn
-  if (gameStateDict.player == 2) {
+  //if (gameStateDict.player == 2) {
   //if (true) {
-      doOneBotStep(gameStateDict);
-  }     
+      //doOneBotStep(gameStateDict);
+  //}     
  
   setTimeout(function (){
       getGameState();
-  }, 30000);
+  }, 5000);
 }
 
 // Call the Server to end players turn and bank score
@@ -105,11 +105,12 @@ function doBotPolicy(gameStateDict) {
   let diceVals = gameStateDict.diceVals;
   let prevKeptDice = gameStateDict.previouslyKeptDice;
   let score = gameStateDict.turnScore;
+  let totals = gameStateDict.totals;
   
   console.log('In doBotPolicy prevKeptDice ', prevKeptDice);
 
    // create a JSON object with parameters for API call and store in a variable
-   var lambdaBody = {"action":"do_bot_policy", 'diceVals' : diceVals, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score, 'whichPolicy' : playerID};
+   var lambdaBody = {"action":"do_bot_policy", 'diceVals' : diceVals, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score, 'totals' : totals, 'playerID' : playerID, 'whichPolicy' : playerID};
    console.log("bankscore lambdabody:" + lambdaBody);
    
    lambdaCall(lambdaBody)
