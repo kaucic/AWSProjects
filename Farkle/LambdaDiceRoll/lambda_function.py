@@ -5,7 +5,7 @@ import random
 
 import logging
 
-from Farkle import Farkle
+from FarkleBots import FarkleBots
 from FarkleFuncs import FarkleFuncs
 
 
@@ -20,6 +20,7 @@ table = dynamodb.Table('Farkle_Game_State_V2')
 gameID = 'test_game'
 diceObj = FarkleFuncs() # Global Dice variable that contains variables _previouslyKeptDice and _keptDiceVals
 NDICE = 6
+MINWINNINGSCORE = 1000
 NPlayers = 2
 # Note: Index 0 is not used, so Player 1 is index 1
 player = 1
@@ -29,7 +30,6 @@ rolledOnceOrMore = False
 turnScore = 0
 totals = [0 for x in range(NPlayers+1)]
 playerNames = ['nobody' for x in range(NPlayers+1)]
-game = Farkle()
 
 
 # define the handler function that the Lambda service will use as an entry point
@@ -38,8 +38,7 @@ def lambda_handler(event, context):
 
     global gameID, NDICE, NPlayers, playerNames, player, diceVals, previouslyKeptDice, turnScore, totals, rolledOnceOrMore
     
-    action = event.get('action','none')
-
+    action = event.get('action', 'none')
     
     # extract values from the event object we got from the Lambda service and store in a variable
     if action == 'init_game':
@@ -80,7 +79,6 @@ def lambda_handler(event, context):
         playerNames = rollState['playerNames']
         rolledOnceOrMore = rollState['rolledOnceOrMore']
         
-        print(f"rOOM before roll_dice: {rolledOnceOrMore}")
         roll_response = roll_dice(event)
 
         if roll_response['valid']:
@@ -167,21 +165,24 @@ def lambda_handler(event, context):
 
 
 #bot Policy stuff
-#       bank, diceToKeep = game.bot1_policy(diceVals,keptDice, turnScore)
+#       bank, diceToKeep = FarkleBots.bot1_policy(diceVals,keptDice, turnScore, totals, botIdx)
 def do_bot(input_data):
         diceVals = input_data['diceVals']
         keptDice = input_data['previouslyKeptDice']
         turnScore = input_data['turnScore']
+        totals = input_data['totals']
+        # Todo: pass in botIdx which is the bots player 
+        botIdx = 2
         print(f"diceVals: {diceVals}")
         print(f"keptDice: {keptDice}")
         print(f"turnScore: {turnScore}")
         if 'unitTest' in input_data:
            print("unitTest")
-           game.bot1_policy([1,3,4,2,5,6],[False,False,False,False,False,False],0)
-           game.bot1_policy([1,3,4,2,5,6],[True,False,False,False,False,False],0)
+           #FarkleBots.bot1_policy([1,3,4,2,5,6],[False,False,False,False,False,False],0)
+           #FarkleBots.bot1_policy([1,3,4,2,5,6],[True,False,False,False,False,False],0)
 
 
-        bank, diceToKeep = game.bot1_policy(diceVals, keptDice, turnScore)
+        bank, diceToKeep = FarkleBots.bot1_policy(diceVals, keptDice, turnScore, totals, botIdx)
 
         body = {'banked' : bank,
             'diceToKeep' : diceToKeep}
@@ -199,11 +200,13 @@ def init_game():
     previouslyKeptDice = [False for x in range(NDICE)]
     diceVals = [1 for x in range(NDICE)]
     turnScore = 0
-    totals = [0 for x in range(NPlayers+1)]
+    totals = [0 for x in range(NPlayers + 1)]
     playerNames[1] = 'Bob'
     playerNames[2] = 'Ron'
 
     body = {'gameID' : gameID,
+            'numPlayers' : NPlayers,
+            'whoWon' : 0,
             'playerNames' : playerNames,
             'player' : player,
             'totals' : totals, 
@@ -231,6 +234,7 @@ def roll_dice(input_data):
     playerID = int(input_data['playerID'])
     keptDice = input_data['keptDice']
     logging.info(f"roll_dice gameID {gID} playerID {playerID} keptDice {keptDice}")
+    winner = 0
     
   
     # Check to see if it is the calling clients turn
@@ -279,6 +283,10 @@ def roll_dice(input_data):
         else: # Farkled, zero out turn score and pass dice to next player 
             body['Farkled'] = True  
             turnScore = 0
+
+            #Check to see if there's a winner
+            winner = whoWon(totals, player, NPlayers)
+
             previouslyKeptDice = diceObj.clear_previouslyKeptDice()  # clear class variable
             rolledOnceOrMore = False # reset global variable when the turn passes to the next player
             player += 1 # Update global variable for whose turn it is
@@ -290,6 +298,7 @@ def roll_dice(input_data):
         body['valid'] = True
         body['totals'] = totals
         body['turnScore'] = turnScore
+        body['whoWon'] = winner
         body['previouslyKeptDice'] = previouslyKeptDice
         body['rolledOnceOrMore'] = rolledOnceOrMore
         body['diceVals'] = diceVals
@@ -330,23 +339,27 @@ def bank_score(input_data):
             # Compute player's total score
             totals[int(player)] += turnScore + diceObj.bank_score()
             turnScore = 0
+            
+            #Check to see if there's a winner
+            winner = whoWon(totals, player, NPlayers)
 
             # Next Players turn
-            player += 1
             previouslyKeptDice = diceObj.clear_previouslyKeptDice()  # clear class variable
             rolledOnceOrMore = False # reset global variable when the turn passes to the next player
+
+            player += 1
             if player > NPlayers:
                 player = 1
             
             body['valid'] = True
             body['playerNames'] = playerNames
             body['player'] = player
+            body['whoWon'] = winner
             body['turnScore'] = turnScore
             body['totals'] = totals
             body['previouslyKeptDice'] = previouslyKeptDice
             body['rolledOnceOrMore'] = False
             body['diceVals'] = diceVals
-
 
         
     else:
@@ -355,3 +368,31 @@ def bank_score(input_data):
         body['errMsg'] = errMsg
 
     return body
+
+# returns the player number who won or 0 if nobody has won yet. 
+# todo: figure out how to handle ties, currently the lower player number wins ties.
+def whoWon(totals, player, numPlayers):
+    # if the next player's score is <= MINWINNINGSCORE than somebody has won.
+    if player == numPlayers :
+        if totals[1] < MINWINNINGSCORE:
+            return 0
+    else:
+        if totals[int(player+1)] < MINWINNINGSCORE:
+            return 0
+    # Somebody won. Figure out who.
+    winning = 1 
+    x = 1 
+    while ( x <= numPlayers):
+        if( totals[winning] < totals[x]):
+            winning = x
+        x = x+1
+
+
+    print(f"WINNER: {winning}")
+    print(f"WINNER: {winning}")
+    print(f"WINNER: {winning}")
+    print(f"WINNER: {winning}")
+    print(f"WINNER: {winning}")
+    print(f"WINNER: {winning}")
+    print(f"WINNER: {winning}")
+    return winning
