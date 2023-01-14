@@ -172,7 +172,10 @@ function updateGameState(state) {
     if (playerID != player) {
         updateCheckboxes(previouslyKeptDice);
     }
-    
+    if (b.whoWon) {
+       alert('the Winner is ' + b.playerNames[b.whoWon]);
+    }
+
     return b;
 }
 
