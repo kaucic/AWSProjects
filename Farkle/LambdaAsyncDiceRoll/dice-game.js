@@ -1,7 +1,7 @@
 // Initialize game
 var NDICE = 6;
 var NPlayers = 2;
-var gameID = "demo_game";
+var gameID = "none";
 // Note: A PlayerID value of 0 is not used and is a special case representing a game that hasn't started or a tie
 var playerID = 1;
 var playerNames = Array(NPlayers+1);
@@ -144,9 +144,11 @@ function updateTurn(turn) {
 function updateGameState(state) {
     var b = state;
     //let gID = b.gameID;
+    gameID = b.gameID;
     let player = b.player;
     //console.log('updateGameState returned Player number ', player);
     //alert('In updateGameState, player is ' + b.player + ' XXX');
+    console.log('updateGameState returned gameID ', gameID);
 
     playerNames = b.playerNames;  // Global variable
     //console.log('State Update playerNames ',playerNames);

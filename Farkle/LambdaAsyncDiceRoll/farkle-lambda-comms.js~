@@ -12,7 +12,7 @@ async function lambdaCall(lambdaBody) {
     };
 
     // make API call with parameters and use promises to get response
-    //let jsObject = await fetch("https://gfkcm1eej6.execute-api.us-west-2.amazonaws.com/dev", requestOptions) //Prod Lambda (helloWorld //Prod Lambda (helloWorldFunction)	
+    //let jsObject = await fetch("https://gfkcm1eej6.execute-api.us-west-2.amazonaws.com/dev", requestOptions) //Prod Lambda (helloWorld //Prod Lambda (helloWorldAPI)	
     let jsObject = await fetch ("https://joj0qaxn6c.execute-api.us-west-2.amazonaws.com/dev", requestOptions) // FarkleTestBed
     .then(function (response) { 
         console.log('lambdaCall: Return status ', response.status); // 200
