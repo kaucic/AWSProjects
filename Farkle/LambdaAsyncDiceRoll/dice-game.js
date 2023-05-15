@@ -22,7 +22,8 @@ function updatePlayerNamesView(names) {
 
 // Update the HTML DOM totals
 function updateTurnScoreAndTotalsView(turnScore,totals) {
-    document.querySelector("span.TurnScore").innerHTML  = turnScore;   
+    document.querySelector("span.TurnScore").innerHTML  = turnScore; 
+    document.querySelector("span.gameID").innerHTML = gameID;  
     document.querySelector("span.Total1").innerHTML 	= totals[1];
     document.querySelector("span.Total2").innerHTML 	= totals[2];
 }    
