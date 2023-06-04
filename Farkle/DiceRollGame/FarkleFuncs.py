@@ -21,6 +21,11 @@ class FarkleFuncs:
 
     def get_diceVals(self) -> list:
         return self._diceVals
+
+    def set_diceVals_and_keptDice(self,newDiceVals,newKeptDice) -> Tuple[list,list]:
+        self._diceVals = newDiceVals
+        self._previouslyKeptDice = newKeptDice
+        return self._diceVals, self._previouslyKeptDice
         
     def get_previouslyKeptDice(self) -> list:
         return self._previouslyKeptDice
@@ -140,7 +145,7 @@ class FarkleFuncs:
         for i in range(self._NDICE):
             diceToRoll[i] = not self._previouslyKeptDice[i]
         
-        for i in range(self._NDICE):
+        for i in range(self._NDICE): 
             if diceToRoll[i] == True:
                 self._diceVals[i] = random.randint(1,6)
                 logging.info(f"rolling die {i} value is {self._diceVals[i]}")
