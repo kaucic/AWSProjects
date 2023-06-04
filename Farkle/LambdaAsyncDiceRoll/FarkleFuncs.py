@@ -14,16 +14,20 @@ import logging
 class FarkleFuncs:
     def __init__(self,NDICE=6):
         self._NDICE = NDICE
-        self._keptDiceVals = [5 for x in range(self._NDICE)]
+        self._diceVals = [5 for x in range(self._NDICE)]
         self.clear_previouslyKeptDice()       
         return
 
-    def set_keptDiceVals(self,diceVals):
-        self._keptDiceVals = diceVals
-        return
+    def get_diceVals(self) -> list:
+        return self._diceVals
 
+    def set_diceVals_and_keptDice(self,newDiceVals,newKeptDice) -> Tuple[list,list]:
+        self._diceVals = newDiceVals
+        self._previouslyKeptDice = newKeptDice
+        return self._diceVals, self._previouslyKeptDice
+        
     def get_keptDiceVals(self) -> list:
-        return self._keptDiceVals
+        return self._diceVals
         
     def get_previouslyKeptDice(self) -> list:
         return self._previouslyKeptDice
@@ -135,9 +139,9 @@ class FarkleFuncs:
 
     # Roll the dice that aren't _previouslyKeptDice
     # Get the dice values from the dice that weren't rolled from the class variable _keptDiceVals
+    # _diceVals is updated based on the new roll
     # Return the a list of values of the dice rolled, list of the previously kept dice, and list of rolled dice
     def roll_dice(self) -> Tuple[list,list]:
-        diceVals = self._keptDiceVals
         # Determine which dice to roll
         diceToRoll = [True for x in range(self._NDICE)]
         for i in range(self._NDICE):
@@ -145,11 +149,11 @@ class FarkleFuncs:
         
         for i in range(self._NDICE):
             if diceToRoll[i] == True:
-                diceVals[i] = random.randint(1,6)
-                logging.info(f"rolling die {i} value is {diceVals[i]}")
+                self._diceVals[i] = random.randint(1,6)
+                logging.info(f"rolling die {i} value is {self._diceVals[i]}")
  
         logging.info(f"roll_dice dice vals {diceVals} previouslyKeptDice {self._previouslyKeptDice}")
-        return diceVals, self._previouslyKeptDice, diceToRoll
+        return self._diceVals, self._previouslyKeptDice, diceToRoll
 
     # Compute the score for all the of dice that weren't previously scored
     # _previouslyKeptDice have already been scored, so score the rest of the dice
@@ -158,7 +162,7 @@ class FarkleFuncs:
         diceToScore = [True for x in range(self._NDICE)]
         for i in range(self._NDICE):
             diceToScore[i] = not self._previouslyKeptDice[i]
-        score, numDiceThatScored, scoringDice = FarkleFuncs.score_dice(self._keptDiceVals,diceToScore)
+        score, numDiceThatScored, scoringDice = FarkleFuncs.score_dice(self._diceVals,diceToScore)
 
         logging.info(f"bank_score extra points that were banked {score} numDiceThatScored is {numDiceThatScored} scoringDice {scoringDice}")
         return score
