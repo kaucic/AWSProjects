@@ -10,22 +10,22 @@ async function lambdaCall(lambdaBody) {
         body: JSON.stringify(lambdaBody),
         redirect: 'follow'
     };
-
+    console.log('lambdaCall input: ', lambdaBody);
     // make API call with parameters and use promises to get response
     //let jsObject = await fetch("https://gfkcm1eej6.execute-api.us-west-2.amazonaws.com/dev", requestOptions) //Prod Lambda (helloWorld //Prod Lambda (helloWorldFunction)	
     let jsObject = await fetch ("https://joj0qaxn6c.execute-api.us-west-2.amazonaws.com/dev", requestOptions) // FarkleTestBed
     .then(function (response) { 
-        console.log('lambdaCall: Return status ', response.status); // 200
-        console.log(response.statusText); // OK
+    //    console.log('lambdaCall: Return status ', response.status); // 200
+    //    console.log(response.statusText); // OK
         return response.json();  // parses JSON response into native JavaScript objects
     })
     .catch(function(error) {
         console.log('ERROR in serverCall fetch ', error);
     })
 
-    console.log('lambdaCall: jsObject ', jsObject)
+  //  console.log('lambdaCall: jsObject ', jsObject)
     mybody = jsObject.body;
-    console.log('lambdaCall: mybody ', mybody)
+  console.log('lambdaCall: mybody ', mybody)
 
     return mybody;
 }
@@ -67,6 +67,7 @@ function initGame(){
 // Long Poll the server every two second to get the game state
 async function getGameState(){
   // create a JSON object with parameters for API call and store in a variable
+//What is gameID here?
   var lambdaBody = {"action":"get_game_state", "gameID": gameID};
   console.log("getGameState lambdabody:" + lambdaBody);
   var lResult;
@@ -75,7 +76,7 @@ async function getGameState(){
   // Make this a blocking call
   let jsObject = await lambdaCall(lambdaBody);
   let gameStateDict = updateGameState(jsObject);
-  console.log('getGameState returned player is ', gameStateDict.player, " XXX");
+  //console.log('getGameState returned player is ', gameStateDict.player, " XXX");
  
   // check to see if it is the bots turn and if so, do one step in a bot turn
   if (gameStateDict.player == 2) {
@@ -85,7 +86,7 @@ async function getGameState(){
  
   setTimeout(function (){
       getGameState();
-  }, 8000);
+  }, 500);
 }
 
 // Call the Server to end players turn and bank score

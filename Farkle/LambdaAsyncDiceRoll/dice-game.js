@@ -129,9 +129,14 @@ function updateTurn(turn) {
         console.log('Returned dice kept are ', previouslyKeptDice);
         updateCheckboxes(previouslyKeptDice);
 
-        // Inform next Player that it is their turn
-        updateTurnView(player);
-        playerID = b.player; // Global variable, will be removed when game logins work
+        if (b.whoWon) {
+           alert('the Winner is ' + b.playerNames[b.whoWon]);
+        }
+        else {
+            // Inform next Player that it is their turn
+            updateTurnView(player);
+            playerID = b.player; // Global variable, will be removed when game logins work
+        }    
     }
     else {
         alert (b.errMsg);
@@ -174,9 +179,6 @@ function updateGameState(state) {
     // Only update the check boxes when you are not the player whose turn it is to not interfere with selections being made
     if (playerID != player) {
         updateCheckboxes(previouslyKeptDice);
-    }
-    if (b.whoWon) {
-       alert('the Winner is ' + b.playerNames[b.whoWon]);
     }
 
     return b;
