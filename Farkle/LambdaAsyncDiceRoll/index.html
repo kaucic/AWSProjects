@@ -22,7 +22,7 @@
 	<div class="container">
 		<button type="button" class="butn"
 			onClick="initGame()">
-			New Game
+			New Game as player 1
 		</button>
 	</div>
 
@@ -54,14 +54,25 @@
 
 	<p> Turn Score <span class="TurnScore">0</span>          GameID <span class="gameID"> null </span> </p>
 
-	<div class="container bottom">
+	<div class="container1">
+		<button type="button" class="butn"
+			onClick="initPlayer2()">
+			  GameID as P2
+		</button>
+        <div class="container1">
+		<button type="button" class="butn"
+			onClick="getGameState()">
+			Opponents Move
+		</button>
+	</div>
+	<div class="container1">
 		<button type="button" class="butn"
 			onClick="humanRollDice()">
 			Roll the Dice
 		</button>
 	</div>
 
-	<div class="container bottom">
+	<div class="container1">
 		<button type="button" class="butn"
 			onClick="bankScore()">
 			Bank

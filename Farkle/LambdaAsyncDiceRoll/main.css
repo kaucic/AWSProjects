@@ -1,4 +1,11 @@
 
+.container1 {
+    width: 40%;
+    display: inline;
+    text-align: right;
+    margin: 0;
+}
+
 .container {
     width: 90%;
     text-align: right;
@@ -45,8 +52,8 @@ img {
     font-family: "Indie Flower", cursive;
     border-radius: 7px;
     color: #ffff;
-    font-size: 30px;
-    padding: 16px 25px 16px 25px;
+    font-size: 20px;
+    padding: 16px 20px 16px 20px;
     text-decoration: none;
 }
 
