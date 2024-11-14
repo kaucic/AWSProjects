@@ -1,6 +1,6 @@
 // Initialize game
 var NDICE = 6;
-var NPlayers = 2;
+var NPlayers = 3;
 var gameID = "none";
 // Note: A PlayerID value of 0 is not used and is a special case representing a game that hasn't started or a tie
 var thisPlayer = 0;
@@ -9,6 +9,7 @@ var playerNames = Array(NPlayers+1);
 var vSI = 0;
 playerNames[1] = "Player1";
 playerNames[2] = "Player2";
+playerNames[3] = "Player3";
 previouslyKeptDice = Array(NDICE).fill(false);
 
 // Update the HTML DOM to broadcast message
@@ -20,6 +21,8 @@ function updateMessage(msg) {
 function updatePlayerNamesView(names) {
     document.querySelector("span.Player1").innerHTML = ("Player 1: " + playerNames[1]);
     document.querySelector("span.Player2").innerHTML = ("Player 2: " + playerNames[2]);
+    document.querySelector("span.Player3").innerHTML = ("Player 3: " + playerNames[3]);
+
 }
 
 // Update the HTML DOM totals
@@ -28,6 +31,7 @@ function updateTurnScoreAndTotalsView(turnScore,totals) {
     document.querySelector("span.gameID").innerHTML = gameID;  
     document.querySelector("span.Total1").innerHTML 	= totals[1];
     document.querySelector("span.Total2").innerHTML 	= totals[2];
+    document.querySelector("span.Total3").innerHTML 	= totals[3];
 }    
 
 // Update the HTML DOM for players turn
@@ -86,8 +90,8 @@ function updateRoll(dice) {
         let player = b.player;
         console.log('updateRoll Returned Player is ',player);
 
-        let Farkled = b.Farkled;
-        console.log('Farkled is ',Farkled);
+        let farkled = b.farkled;
+        console.log('farkled is ',farkled);
         //console.log('rolledOnceOrMore is', b.rolledOnceOrMore)
         let die = b.diceVals;
         let turnScore = b.turnScore;
@@ -97,7 +101,7 @@ function updateRoll(dice) {
         console.log('updateRoll turnScore is ',turnScore);
         
         updateDiceView(player,die,turnScore);
-        if (Farkled == true) {
+        if (farkled == true) {
             updateMessage("Farkle!");
             setTimeout(function() {
                 updateTurnView(dice);
@@ -126,6 +130,10 @@ function updateTurn(turn) {
 
         activePlayer = b.player;
         console.log('updateTurn complete.  Returned new Player number is ', activePlayer);
+        
+        if (b.player == 3){
+            doBotTurn();
+        }
 
         let turnScore = b.turnScore;
         let totals = b.totals;
@@ -165,7 +173,7 @@ function updateGameState(state,doNextMove) {
     console.log('updateGameState returned gameID ', gameID);
     console.log('uGS-state: ', state);
     console.log('uSG-doNextMove: ', doNextMove);
-
+ 
    if (vSI <= b.viewStateIndex){ 
       playerNames = b.playerNames;  // Global variable
       //console.log('State Update playerNames ',playerNames);
@@ -184,19 +192,6 @@ function updateGameState(state,doNextMove) {
       updateDiceView(activePlayer,die,totals[activePlayer]);
       updateTurnScoreAndTotalsView(turnScore,totals);
     }
- /*   }else{
-        playerNames = b.playerNames;  // Global variable
-
-        totals = b.totals;
-        turnScore = b.turnScore;
-        //console.log('State Update Totals',totals);
-
-        die = b.diceVals;
-        previouslyKeptDice = b.previouslyKeptDice; // Update Global variable
-        updateTurnView(state);
-    }
-*/
-
 
     // Only update the check boxes when you are not the player whose turn it is to not interfere with selections being made
     if (thisPlayer != activePlayer) {
