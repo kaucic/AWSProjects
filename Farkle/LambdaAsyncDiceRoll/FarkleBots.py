@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 """
 Created on Mon Sep 06 13:50:26 2021
 
@@ -124,6 +124,7 @@ class FarkleBots:
     # Select the appropriate policy to use based on whichPolicy selected
     @staticmethod
     def bot_policy(whichPolicy,diceVals,previouslyKeptDice,turnScore,totals,botIdx) -> Tuple[bool,list]:
+        whichPolicy = 1
         if whichPolicy == 1:
             return FarkleBots.bot1_policy(diceVals,previouslyKeptDice,turnScore,totals,botIdx)
         elif whichPolicy == 2:
@@ -137,7 +138,11 @@ class FarkleBots:
     # Currently the players' scores aren't used 
     # Class variables _keptDiceVals and _previouslyKeptDice are modified during the turn
     # Return the score for the turn
-    def bot_do_turn(self,totals,botIdx,whichPolicy=1) -> int:
+    
+    
+
+    
+    def old_bot_do_turn(self,totals,botIdx,whichPolicy=1) -> int: 
         # do roll_dice until Farkle or bank_score
         #   if not Farkle
         #       Use policy to bank_score or choose dice to roll
@@ -147,6 +152,8 @@ class FarkleBots:
         banked = False
 
         # Always roll the dice to start the turn
+        
+
         diceVals,previouslyKeptDice,rolledDice = diceObj.roll_dice()
         diceObj.set_keptDiceVals(diceVals)  # update class variable
         score, numDiceThatScored, scoringDice = FarkleFuncs.score_dice(diceVals,rolledDice)
@@ -203,3 +210,4 @@ if __name__ == "__main__":
     botScore = inst.bot_do_turn(totals,botIdx,2)
     logging.info(f"bot2 scored {botScore} points")
     doFlaskLogging.clean_up_logger()
+ 
