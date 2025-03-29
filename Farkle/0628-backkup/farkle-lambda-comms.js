@@ -39,9 +39,8 @@ function initGame(){
     var plResult;
     lambdaCall(lambdaBody)
     .then(updateGameState);
-    vSI = 0; 
+
     thisPlayer = 1;
-    activePlayer = 1; //Player 1 always goes first.
     // Start long polling
     //getGameState(false);
 }
@@ -49,11 +48,11 @@ function initGame(){
 // Function to roll the dice
 function rollDice() {
 
-    if (thisPlayer != activePlayer){
-      //do alert 'not your turn'
-      alert('It is not your turn yet.');
-      return;
-    }
+  //  if (vSI <= viewStateIndex){
+  //    //do alert 'not your turn'
+  //    alert('Not your turn');
+  //    return;
+  //  }
 
     // Get which dice the customer wants to keep
     let keep = getCheckboxValues();
@@ -121,16 +120,9 @@ async function getGameState(){
   //    getGameState();
   //}, 5000);
 }
- 
+
 // Call the Server to end players turn and bank score
 function bankScore(){
-
-  if (thisPlayer != activePlayer){
-      //do alert 'not your turn'
-      alert('It is not your turn yet.');
-      return;
-  }
-
   // create a JSON object with parameters for API call and store in a variable
   var lambdaBody = {"action":"bank", "playerID":thisPlayer, "gameID": gameID};
   console.log("bankscore lambdabody:" + lambdaBody);
@@ -139,17 +131,22 @@ function bankScore(){
   lambdaCall(lambdaBody)
   .then(updateTurn);
 }
- 
-// Call the Server to do a full turn as the bot. The bot is player 2
-function doBotTurn(whichPolicy) {
+
+// Call the Server to determine whether to roll or bank and which dice to keep
+// Returns a Java Script policy dictionary
+function doBotPolicy(gameStateDict) {
   // Get parametes from gameStateDict
-   console.log('In doBotTurn');
-   var whichPolicy = 1;
+  let diceVals = gameStateDict.diceVals;
+  let prevKeptDice = gameStateDict.previouslyKeptDice;
+  let score = gameStateDict.turnScore;
+  let totals = gameStateDict.totals;
+  
+  console.log('In doBotPolicy prevKeptDice ', prevKeptDice);
 
    // create a JSON object with parameters for API call and store in a variable
-   var lambdaBody = {"action":"do_bot_turn", "playerID" : 3, "whichPolicy" : whichPolicy, "gameID": gameID};
-   console.log("doBotTurn lambdabody:" + lambdaBody);
+   var lambdaBody = {"action":"do_bot_policy", 'diceVals' : diceVals, 'previouslyKeptDice' : prevKeptDice, 'turnScore' : score, 'totals' : totals, 'playerID' : playerID, 'whichPolicy' : playerID};
+   console.log("bankscore lambdabody:" + lambdaBody);
    
    lambdaCall(lambdaBody)
-   .then(updateTurn);
+   .then(implementPolicy);
 }

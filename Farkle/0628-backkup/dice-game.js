@@ -1,15 +1,13 @@
 // Initialize game
 var NDICE = 6;
-var NPlayers = 3;
+var NPlayers = 2;
 var gameID = "none";
 // Note: A PlayerID value of 0 is not used and is a special case representing a game that hasn't started or a tie
-var thisPlayer = 0;
-var activePlayer = 0;  //Whose turn is it?
+var thisPlayer = 0
 var playerNames = Array(NPlayers+1);
 var vSI = 0;
 playerNames[1] = "Player1";
 playerNames[2] = "Player2";
-playerNames[3] = "Player3";
 previouslyKeptDice = Array(NDICE).fill(false);
 
 // Update the HTML DOM to broadcast message
@@ -19,14 +17,8 @@ function updateMessage(msg) {
 
 // Update the names of the players
 function updatePlayerNamesView(names) {
-    if (thisPlayer == 1){
-        document.querySelector("span.Player1").style.backgroundColor = "red";}  
-    if (thisPlayer == 2){
-        document.querySelector("span.Player2").style.backgroundColor = "red";}
     document.querySelector("span.Player1").innerHTML = ("Player 1: " + playerNames[1]);
     document.querySelector("span.Player2").innerHTML = ("Player 2: " + playerNames[2]);
-    document.querySelector("span.Player3").innerHTML = ("Player 3: " + playerNames[3]);
-
 }
 
 // Update the HTML DOM totals
@@ -35,10 +27,12 @@ function updateTurnScoreAndTotalsView(turnScore,totals) {
     document.querySelector("span.gameID").innerHTML = gameID;  
     document.querySelector("span.Total1").innerHTML 	= totals[1];
     document.querySelector("span.Total2").innerHTML 	= totals[2];
-    document.querySelector("span.Total3").innerHTML 	= totals[3];
 }    
 
 // Update the HTML DOM for players turn
+//function updateTurnView(player) {
+//    document.querySelector("h1").innerHTML = (playerNames[player] + "\'s turn");
+
 function updateTurnView(state) {
     if (state.whoWon) {
        document.querySelector("h1").innerHTML = (playerNames[state.whoWon] + " Won!");
@@ -94,8 +88,8 @@ function updateRoll(dice) {
         let player = b.player;
         console.log('updateRoll Returned Player is ',player);
 
-        let farkled = b.farkled;
-        console.log('farkled is ',farkled);
+        let Farkled = b.Farkled;
+        console.log('Farkled is ',Farkled);
         //console.log('rolledOnceOrMore is', b.rolledOnceOrMore)
         let die = b.diceVals;
         let turnScore = b.turnScore;
@@ -105,15 +99,11 @@ function updateRoll(dice) {
         console.log('updateRoll turnScore is ',turnScore);
         
         updateDiceView(player,die,turnScore);
-        if (farkled == true) {
+        if (Farkled == true) {
             updateMessage("Farkle!");
             setTimeout(function() {
                 updateTurnView(dice);
             }, 5000);
-        // If it's the bot's turn doBotTurn
-        if (b.player == 3){
-            doBotTurn();
-        }
         }
 
         previouslyKeptDice = b.previouslyKeptDice; // Update Global variable for dice that are set aside
@@ -121,7 +111,6 @@ function updateRoll(dice) {
     }
 
     else {
-     console.log('alert in updateRoll b is',b);
         alert(b.errMsg);
     }
 
@@ -133,12 +122,12 @@ function updateRoll(dice) {
 function updateTurn(turn) {
     var b = turn;
     let valid = b.valid;
- 
+
     if (valid == true) {
         let gID = b.gameID;
 
-        activePlayer = b.player;
-        console.log('updateTurn complete.  Returned new Player number is ', activePlayer);
+        let player = b.player;
+        console.log('updateTurn complete.  Returned new Player number is ', player);
 
         let turnScore = b.turnScore;
         let totals = b.totals;
@@ -155,17 +144,15 @@ function updateTurn(turn) {
         }
         else {
             // Inform next Player that it is their turn
-            updateTurnView(turn);       
+            updateTurnView(turn);
+          
         }    
     }
     else {
-        console.log('alert in updateTurn b is',b);
         alert (b.errMsg);
     }
-        
-    if (b.player == 3){
-        doBotTurn();
-    }
+
+    return b;
 }
 
 // Function to parse json returned after a change in the game state and update the HTML
@@ -175,31 +162,48 @@ function updateGameState(state,doNextMove) {
     var totals = [];
     var turnscore;
     gameID = b.gameID;
+    let player = b.player;
+    //console.log('updateGameState returned Player number ', player);
+    //alert('In updateGameState, player is ' + b.player + ' XXX');
     console.log('updateGameState returned gameID ', gameID);
-    console.log('uGS-state: ', state);
-    console.log('uSG-doNextMove: ', doNextMove);
- 
-   if (vSI <= b.viewStateIndex){ 
-      playerNames = b.playerNames;  // Global variable
-      //console.log('State Update playerNames ',playerNames);
-      console.log('uGS-vSI:', vSI);
-      totals = b.viewStateList[vSI].totals;
-      turnScore = b.viewStateList[vSI].turnScore;
-      //console.log('State Update Totals',totals);
-
-      die = b.viewStateList[vSI].diceVals;    
-      activePlayer = b.viewStateList[vSI].player;
-      previouslyKeptDice = b.viewStateList[vSI].previouslyKeptDice; // Update Global variable
-      updateTurnView(b.viewStateList[vSI]);
-      vSI++;
-      updatePlayerNamesView(playerNames);
     
-      updateDiceView(activePlayer,die,totals[activePlayer]);
-      updateTurnScoreAndTotalsView(turnScore,totals);
+    if (doNextMove == false){
+        thisPlayer = 2; 
+        
+    } 
+    if (doNextMove && vSI <= b.viewStateIndex){
+        playerNames = b.playerNames;  // Global variable
+        //console.log('State Update playerNames ',playerNames);
+
+        totals = b.viewStateList[vSI].totals;
+        turnScore = b.viewStateList[vSI].turnScore;
+        //console.log('State Update Totals',totals);
+
+        die = b.viewStateList[vSI].diceVals;    
+        player = b.viewStateList[vSI].player;
+        previouslyKeptDice = b.viewStateList[vSI].previouslyKeptDice; // Update Global variable
+        updateTurnView(b.viewStateList[vSI]);
+        vSI++;
+    }else{
+        playerNames = b.playerNames;  // Global variable
+        //console.log('State Update playerNames ',playerNames);
+
+        totals = b.totals;
+        turnScore = b.turnScore;
+        //console.log('State Update Totals',totals);
+
+        die = b.diceVals;
+        previouslyKeptDice = b.previouslyKeptDice; // Update Global variable
+        updateTurnView(state);
     }
+    updatePlayerNamesView(playerNames);
+    //updateTurnView(player);
+    
+    updateDiceView(player,die,totals[player]);
+    updateTurnScoreAndTotalsView(turnScore,totals);
 
     // Only update the check boxes when you are not the player whose turn it is to not interfere with selections being made
-    if (thisPlayer != activePlayer) {
+    if (doNextMove) {
         updateCheckboxes(previouslyKeptDice);
     }
 
