@@ -85,8 +85,8 @@ function getCheckboxValues() {
 
 // Function to parse dice json returned from server and update the HTML
 // Input is the body of the Java Script object returned from the server
-function updateRoll(dice) {
-    let b = dice;
+function updateRoll(roll) {
+    let b = roll;
     let gID = b.gameID;
     let valid = b.valid;
 
@@ -99,23 +99,22 @@ function updateRoll(dice) {
         //console.log('rolledOnceOrMore is', b.rolledOnceOrMore)
         let die = b.diceVals;
         let turnScore = b.turnScore;
-        vSI++;
+        
         console.log('updateRoll die are ',die);
         console.log('updateRoll dice kept are ', previouslyKeptDice);
         console.log('updateRoll turnScore is ',turnScore);
         
         updateDiceView(player,die,turnScore);
         if (farkled == true) {
+            console.log('Displaying Farkle!');
             updateMessage("Farkle!");
             setTimeout(function() {
-                updateTurnView(dice);
-            }, 5000);
-        // If it's the bot's turn doBotTurn
-        if (b.player == 3){
-            doBotTurn();
+                updateTurn(roll);
+            }, 3000);  
         }
+        else {
+          vSI++;
         }
-
         previouslyKeptDice = b.previouslyKeptDice; // Update Global variable for dice that are set aside
         updateCheckboxes(previouslyKeptDice);
     }
@@ -150,9 +149,9 @@ function updateTurn(turn) {
         console.log('Returned dice kept are ', previouslyKeptDice);
         updateCheckboxes(previouslyKeptDice);
 
-        if (b.whoWon) {
+   if (b.whoWon) {
            alert('the Winner is ' + b.playerNames[b.whoWon]);
-        }
+        }        
         else {
             // Inform next Player that it is their turn
             updateTurnView(turn);       
@@ -191,18 +190,24 @@ function updateGameState(state,doNextMove) {
       activePlayer = b.viewStateList[vSI].player;
       previouslyKeptDice = b.viewStateList[vSI].previouslyKeptDice; // Update Global variable
       updateTurnView(b.viewStateList[vSI]);
-      vSI++;
       updatePlayerNamesView(playerNames);
     
       updateDiceView(activePlayer,die,totals[activePlayer]);
       updateTurnScoreAndTotalsView(turnScore,totals);
-    }
-
-    // Only update the check boxes when you are not the player whose turn it is to not interfere with selections being made
-    if (thisPlayer != activePlayer) {
+       if (b.viewStateList[vSI].farkled == true) {
+            console.log('Displaying oppenent Farkle!');
+            updateMessage("Farkle!");
+            FarkleVSI = vSI;
+            setTimeout(function() {
+                updateTurnView(b.viewStateList[FarkleVSI]);
+            }, 3000); 
+       }
+      // Only update the check boxes when you are not the active player to not interfere with selections being made
+      if (thisPlayer != activePlayer) {
         updateCheckboxes(previouslyKeptDice);
+      }
+      vSI++;
     }
-
     return b;
 }
 
